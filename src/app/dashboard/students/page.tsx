@@ -12,7 +12,7 @@ import Link from 'next/link'
 export default async function StudentsPage({
     searchParams,
   }: {
-    searchParams: { [key: string]: string | string[] | undefined }
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
   }) {
   const supabase = await createClient()
 
@@ -20,8 +20,9 @@ export default async function StudentsPage({
   if (!user) return null
 
   // URL Params
-  const page = Number(searchParams['page']) || 1
-  const query = searchParams['q'] as string || ''
+  const resolvedSearchParams = await searchParams
+  const page = Number(resolvedSearchParams['page']) || 1
+  const query = resolvedSearchParams['q'] as string || ''
   const limit = 50
   const from = (page - 1) * limit
   const to = from + limit - 1

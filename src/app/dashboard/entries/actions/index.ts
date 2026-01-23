@@ -51,7 +51,8 @@ export async function upsertEntry(formData: FormData) {
     throw new Error('Failed to save entry')
   }
 
-  revalidatePath(`/dashboard/entries`) // simplistic revalidation
+  revalidatePath(`/dashboard/entries`)
+  revalidatePath(`/dashboard/entries/${event_id}`)
   return { success: true }
 }
 
@@ -71,6 +72,7 @@ export async function submitEntries(eventId: string) {
     if (error) throw new Error('Failed to submit entries')
     
     revalidatePath(`/dashboard/entries`)
+    revalidatePath(`/dashboard/entries/${eventId}`)
     return { success: true }
 }
 

@@ -16,10 +16,13 @@ export async function updateApplicationStatus(applicationId: string, status: 'ap
     // Our RLS: "exists (select 1 from events where events.id = event_applications.event_id and events.organizer_id = auth.uid())"
     // This protects UPDATES too.
 
-  const { error } = await supabase
+  // Fetch event_id to revalidate the correct page
+  const { data: updated, error } = await supabase
     .from('event_applications')
     .update({ status })
     .eq('id', applicationId)
+    .select('event_id')
+    .single()
 
   if (error) {
     console.error(error)
@@ -27,5 +30,8 @@ export async function updateApplicationStatus(applicationId: string, status: 'ap
   }
 
   revalidatePath('/dashboard/approvals')
+  if (updated) {
+       revalidatePath(`/dashboard/events/${updated.event_id}/approvals`)
+  }
   return { success: true }
 }
