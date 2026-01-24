@@ -25,6 +25,7 @@ export default async function EventEntriesPage({
     .from('organizer_entries_view')
     .select('*', { count: 'exact' })
     .eq('event_id', id)
+    .neq('status', 'draft')
 
   // Apply filters
   if (p.q) {

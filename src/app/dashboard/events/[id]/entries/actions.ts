@@ -64,6 +64,7 @@ export async function bulkUpdateEntryStatus(entryIds: string[], status: 'approve
         .from('entries')
         .update({ status })
         .in('id', entryIds)
+        .neq('status', 'draft')
 
     if (error) throw new Error('Failed to update entries')
 
