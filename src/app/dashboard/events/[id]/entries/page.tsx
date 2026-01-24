@@ -1,27 +1,104 @@
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { ExportEntries } from '@/components/events/export-entries'
+import { EntriesTable } from '@/components/events/entries-table'
+import { EntryFilters } from '@/components/events/entry-filters'
+import { PaginationControls } from '@/components/ui/pagination-controls'
 
-export default async function EventEntriesPage({ params }: { params: { id: string } }) {
+export default async function EventEntriesPage({ 
+    params,
+    searchParams 
+}: { 
+    params: { id: string },
+    searchParams: { q?: string, status?: string, coach?: string, day?: string, page?: string }
+}) {
   const { id } = await params
   const supabase = await createClient()
+  const p = await searchParams
 
-  // Fetch entries for this event
-  // Join student, category, dojo via nested relations
-  const { data: entries } = await supabase
-    .from('entries')
-    .select(`
-        *,
-        students(name, gender, rank, weight, dojos(name)),
-        categories(name),
-        event_days(name),
-        profiles(full_name, email)
-    `)
+  const page = Number(p.page) || 1
+  const limit = 50
+  const offset = (page - 1) * limit
+
+  // Base query on the View
+  let query = supabase
+    .from('organizer_entries_view')
+    .select('*', { count: 'exact' })
     .eq('event_id', id)
-    // .eq('status', 'submitted') // Maybe we want to see drafts too? distinct logic usually
-    .order('created_at', { ascending: false })
 
-  // Flatten for export
+  // Apply filters
+  if (p.q) {
+      query = query.ilike('student_name', `%${p.q}%`)
+  }
+  if (p.status && p.status !== 'all') {
+      query = query.eq('status', p.status)
+  }
+  if (p.coach && p.coach !== 'all') {
+      query = query.eq('coach_id', p.coach)
+  }
+  if (p.day && p.day !== 'all') {
+      query = query.eq('event_day_id', p.day)
+  }
+
+  // Execute query with pagination
+  const { data: viewEntries, count } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  const totalPages = count ? Math.ceil(count / limit) : 0
+
+  // Map View Flat Data to Nested Structure for Table
+  const entries = viewEntries?.map(e => ({
+      id: e.entry_id, // Map entry_id (view) to id (table expectation)
+      event_id: e.event_id,
+      status: e.status,
+      participation_type: e.participation_type,
+      students: {
+          name: e.student_name,
+          rank: e.student_rank,
+          weight: e.student_weight,
+          dojos: { name: e.dojo_name }
+      },
+      categories: e.category_name ? { name: e.category_name } : null,
+      event_days: e.event_day_name ? { name: e.event_day_name } : null,
+      profiles: {
+          full_name: e.coach_name,
+          email: e.coach_email
+      }
+  })) || []
+
+  // Fetch filter data from the View efficiently
+  // Coaches
+  const { data: coachData } = await supabase
+      .from('organizer_entries_view')
+      .select('coach_id, coach_name')
+      .eq('event_id', id)
+  
+  // Dedup coaches
+  const coachesMap = new Map()
+  coachData?.forEach((c: any) => {
+      if (!coachesMap.has(c.coach_id)) {
+          coachesMap.set(c.coach_id, { id: c.coach_id, name: c.coach_name })
+      }
+  })
+  const coaches = Array.from(coachesMap.values())
+  
+  // Event Days (Can still fetch from table or view, view is fine)
+  const { data: dayData } = await supabase
+    .from('organizer_entries_view')
+    .select('event_day_id, event_day_name')
+    .eq('event_id', id)
+    .not('event_day_id', 'is', null)
+
+   const daysMap = new Map()
+   dayData?.forEach((d: any) => {
+       if (!daysMap.has(d.event_day_id)) {
+           daysMap.set(d.event_day_id, { id: d.event_day_id, name: d.event_day_name })
+       }
+   })
+   const formattedDays = Array.from(daysMap.values())
+
+  
   const exportData = entries?.map(e => ({
       Student: e.students?.name,
       Dojo: e.students?.dojos?.name,
@@ -35,55 +112,26 @@ export default async function EventEntriesPage({ params }: { params: { id: strin
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-            <h2 className="text-xl font-bold tracking-tight">Entries</h2>
-            <p className="text-muted-foreground">Monitor participation.</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+            <div>
+                <h2 className="text-xl font-bold tracking-tight">Entries</h2>
+                <p className="text-muted-foreground">Manage {count} entries.</p>
+            </div>
+            <ExportEntries data={exportData} />
         </div>
-        <ExportEntries data={exportData} />
+
+        <EntryFilters coaches={coaches} eventDays={formattedDays} />
       </div>
 
       <Card>
         <CardContent className="p-0">
-             {entries && entries.length > 0 ? (
-                <div className="relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm text-left">
-                        <thead className="[&_tr]:border-b">
-                            <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Student</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Dojo</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Category</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Type</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="[&_tr:last-child]:border-0">
-                            {entries.map((entry) => (
-                                <tr key={entry.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                    {/* @ts-ignore */}
-                                    <td className="p-4 align-middle font-medium">{entry.students?.name}</td>
-                                    {/* @ts-ignore */}
-                                    <td className="p-4 align-middle">{entry.students?.dojos?.name}</td>
-                                    {/* @ts-ignore */}
-                                    <td className="p-4 align-middle">{entry.categories?.name || '-'}</td>
-                                    <td className="p-4 align-middle capitalize">{entry.participation_type}</td>
-                                    <td className="p-4 align-middle">
-                                         <span className={entry.status === 'submitted' ? "text-green-600 font-medium" : "text-yellow-600"}>
-                                            {entry.status}
-                                         </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-             ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                    No entries yet.
-                </div>
-             )}
+             <EntriesTable entries={entries} />
         </CardContent>
       </Card>
+      
+      <PaginationControls page={page} totalPages={totalPages} />
     </div>
   )
 }
+
