@@ -156,6 +156,23 @@ export async function bulkSubmitEntries(entryIds: string[]) {
     return { success: true, submitted: validEntryIds.length, ignored: invalidEntries.length }
 }
 
+export async function deleteEntry(entryId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    const { error } = await supabase
+        .from('entries')
+        .delete()
+        .eq('id', entryId)
+        .eq('coach_id', user.id)
+
+    if (error) throw new Error('Failed to delete entry')
+
+    revalidatePath('/dashboard/entries')
+    return { success: true }
+}
+
 export async function bulkDeleteEntries(entryIds: string[]) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

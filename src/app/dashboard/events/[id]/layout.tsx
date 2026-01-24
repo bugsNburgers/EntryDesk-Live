@@ -9,7 +9,7 @@ export default async function EventLayout({
     params,
   }: {
     children: React.ReactNode
-    params: { id: string }
+    params: Promise<{ id: string }>
   }) {
     // Await params before using its properties
     const { id } = await params
