@@ -1,10 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from '@/components/ui/button'
-import { submitEntries } from "@/app/dashboard/entries/actions"
-import { EntryRow } from '@/components/entries/entry-row'
-import { ArrowLeft, Save } from 'lucide-react'
-import Link from 'next/link'
+import { CoachDashboard } from '@/components/coach/coach-dashboard'
 import { notFound } from 'next/navigation'
 
 export default async function EventEntriesPage({ params }: { params: { eventId: string } }) {
@@ -18,7 +13,7 @@ export default async function EventEntriesPage({ params }: { params: { eventId: 
   const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single()
   if (!event) notFound()
 
-  // Verify access (optional but good)
+  // Verify access
   const { data: app } = await supabase
     .from('event_applications')
     .select('status')
@@ -27,79 +22,60 @@ export default async function EventEntriesPage({ params }: { params: { eventId: 
     .single()
   
   if (!app || app.status !== 'approved') {
-      return <div>Access Denied. You are not approved for this event.</div>
+      return <div className="p-8 text-center text-red-600">Access Denied. You are not approved for this event.</div>
   }
 
-  // Fetch Data
-  const studentsRes = await supabase.from('students').select('*, dojos(*)').order('name')
-  // Filter for coach's students via RLS logic (implicit) but explicit join is safer if RLS wasn't perfect, but here we trust RLS for 'students' table.
-  const students = studentsRes.data || []
+  // Fetch ALL students for this coach (via Dojos)
+  // Logic: Users -> Profiles -> Dojos -> Students
+  const { data: students } = await supabase
+    .from('students')
+    .select('*, dojos!inner(id, name, coach_id)') 
+    .eq('dojos.coach_id', user.id)
+    .order('name')
+    // Note: RLS should handle this, but the explicit inner join ensures we get students belonging to dojos owned by this coach.
+  
+  // Fetch Entries
+  const { data: entries } = await supabase
+    .from('entries')
+    .select(`
+        *,
+        students(id, name, gender, rank, weight, date_of_birth, dojo_id),
+        event_days(name)
+    `)
+    .eq('event_id', eventId)
+    .eq('coach_id', user.id)
+    .order('created_at', { ascending: false })
 
-  const categoriesRes = await supabase.from('categories').select('*').eq('event_id', eventId)
-  const categories = categoriesRes.data || []
+  // Fetch Event Days for Registration
+  const { data: eventDays } = await supabase
+    .from('event_days')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('date', { ascending: true })
 
-  const daysRes = await supabase.from('event_days').select('*').eq('event_id', eventId)
-  const eventDays = daysRes.data || []
+  // Fetch Dojos for Edit Form
+  const { data: dojos } = await supabase
+    .from('dojos')
+    .select('id, name')
+    .eq('coach_id', user.id)
 
-  const entriesRes = await supabase.from('entries').select('*').eq('event_id', eventId).eq('coach_id', user.id)
-  const entries = entriesRes.data || []
-
-  // Map Entries
-  const entryMap = new Map()
-  entries.forEach(e => entryMap.set(e.student_id, e))
+  // Compute Stats
+  const validEntries = entries || []
+  const stats = {
+      total: validEntries.length,
+      draft: validEntries.filter(e => e.status === 'draft').length,
+      submitted: validEntries.filter(e => e.status === 'submitted').length,
+      approved: validEntries.filter(e => e.status === 'approved').length
+  }
 
   return (
-    <div className="space-y-6 h-[calc(100vh-4rem)] flex flex-col">
-      <div className="flex flex-col gap-4 flex-none">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Link href="/dashboard/entries" className="hover:text-foreground flex items-center gap-1">
-                <ArrowLeft className="h-3 w-3" /> Back to Events
-            </Link>
-        </div>
-        <div className="flex justify-between items-center">
-             <div>
-                <h1 className="text-3xl font-bold tracking-tight">{event.title}</h1>
-                <p className="text-muted-foreground">Manage entries for your team.</p>
-             </div>
-             <form action={submitEntries.bind(null, eventId)}>
-                 <Button size="lg">
-                    <Save className="mr-2 h-4 w-4" /> Submit All Drafts
-                 </Button>
-             </form>
-        </div>
-      </div>
-
-      <Card className="flex-1 overflow-hidden flex flex-col">
-        <CardContent className="p-0 flex-1 overflow-auto">
-             <table className="w-full caption-bottom text-sm text-left">
-                <thead className="[&_tr]:border-b sticky top-0 bg-background z-10 shadow-sm">
-                    <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground min-w-[150px]">Student</th>
-                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground min-w-[200px]">Category</th>
-                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground min-w-[150px]">Day</th>
-                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Type</th>
-                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-center">Status</th>
-                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody className="[&_tr:last-child]:border-0 bg-white">
-                     {students.map(student => (
-                         <EntryRow 
-                            key={student.id} 
-                            student={student} 
-                            entry={entryMap.get(student.id)} 
-                            categories={categories}
-                            eventDays={eventDays}
-                            eventId={eventId}
-                         />
-                     ))}
-                </tbody>
-            </table>
-        </CardContent>
-      </Card>
-      <div className="text-xs text-muted-foreground text-right flex-none">
-          Showing {students.length} students.
-      </div>
-    </div>
+    <CoachDashboard 
+        event={event} 
+        stats={stats} 
+        entries={validEntries} 
+        students={students || []} 
+        eventDays={eventDays || []}
+        dojos={dojos || []}
+    />
   )
 }

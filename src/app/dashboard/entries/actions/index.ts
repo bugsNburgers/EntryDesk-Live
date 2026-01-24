@@ -76,14 +76,100 @@ export async function submitEntries(eventId: string) {
     return { success: true }
 }
 
-export async function deleteEntry(entryId: string) {
+export async function bulkCreateEntries(eventId: string, entries: { student_id: string, participation_type: string, event_day_id?: string | null }[]) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const { error } = await supabase.from('entries').delete().eq('id', entryId).eq('coach_id', user.id)
-     if (error) throw new Error('Failed to delete entry')
+    if (entries.length === 0) return { success: true }
+
+    const payload = entries.map(e => ({
+        event_id: eventId,
+        coach_id: user.id,
+        student_id: e.student_id,
+        participation_type: e.participation_type,
+        status: 'draft',
+        category_id: null,
+        event_day_id: e.event_day_id || null
+    }))
+
+    const { error } = await supabase.from('entries').insert(payload)
+    if (error) {
+        console.error(error)
+        throw new Error('Failed to create entries')
+    }
+
+    revalidatePath(`/dashboard/entries/${eventId}`)
+    return { success: true }
+}
+
+export async function bulkSubmitEntries(entryIds: string[]) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+    if (entryIds.length === 0) return { success: true }
+
+    // 1. Fetch entries with Student details to Validate
+    const { data: entriesToValidate } = await supabase
+        .from('entries')
+        .select('id, students(name, gender, date_of_birth, rank, weight)')
+        .in('id', entryIds)
+        .eq('coach_id', user.id)
+
+    if (!entriesToValidate) return { success: false, message: 'No entries found' }
+
+    // 2. Filter Valid Entries
+    const validEntryIds: string[] = []
+    const invalidEntries: any[] = []
+
+    entriesToValidate.forEach(e => {
+        // @ts-ignore
+        const s = Array.isArray(e.students) ? e.students[0] : e.students
+        // Check for missing fields. 0 is valid for weight? Maybe. But usually not. Let's assume weight > 0 or at least not null. 
+        // Supabase returns null if column is null.
+        if (s && s.name && s.gender && s.date_of_birth && s.rank && s.weight) {
+            validEntryIds.push(e.id)
+        } else {
+            invalidEntries.push(e)
+        }
+    })
+
+    if (validEntryIds.length === 0) {
+        // All selected entries were invalid
+        console.log("No valid entries to submit. Missing profile details.")
+        return { success: false, message: 'All selected entries are missing required profile details (Weight, Rank, DOB, etc).' }
+    }
+
+    // 3. Update Valid Entries Only
+    const { error } = await supabase
+        .from('entries')
+        .update({ status: 'submitted' })
+        .in('id', validEntryIds)
+        .eq('status', 'draft') // Double check we only submit drafts
+        .eq('coach_id', user.id) 
+
+    if (error) throw new Error('Failed to submit entries')
+
+    revalidatePath(`/dashboard/entries`)
     
+    // Optional: could return details about how many were passed/failed
+    return { success: true, submitted: validEntryIds.length, ignored: invalidEntries.length }
+}
+
+export async function bulkDeleteEntries(entryIds: string[]) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+    if (entryIds.length === 0) return { success: true }
+
+    const { error } = await supabase
+        .from('entries')
+        .delete()
+        .in('id', entryIds)
+        .eq('coach_id', user.id)
+
+    if (error) throw new Error('Failed to delete entries')
+
     revalidatePath(`/dashboard/entries`)
     return { success: true }
 }

@@ -78,7 +78,21 @@ export async function updateStudent(studentId: string, formData: FormData) {
         throw new Error('Failed to update student')
     }
 
+    // Revert submitted/approved entries to draft (User Requirement: force resubmission on profile edit)
+    const { error: revertError } = await supabase
+        .from('entries')
+        .update({ status: 'draft' })
+        .eq('student_id', studentId)
+        .in('status', ['submitted', 'approved']) // Resetting approved ones too as they might now be invalid
+
+    if (revertError) {
+        console.error("Failed to revert entries to draft:", revertError)
+        // Silent fail or throw? Probably log but don't fail the student update? 
+        // Better to fail maybe, but let's just log and continue for now as the student update is the primary action.
+    }
+
     revalidatePath('/dashboard/students')
+    revalidatePath('/dashboard/entries') // Refresh entries view
     return { success: true }
 }
 
