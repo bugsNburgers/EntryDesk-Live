@@ -30,7 +30,7 @@ export async function createStudent(formData: FormData) {
       name,
       gender,
       dojo_id,
-      rank,
+      rank: rank || null,
       weight,
       date_of_birth: dob ? dob : null
     })
@@ -66,7 +66,7 @@ export async function updateStudent(studentId: string, formData: FormData) {
         .update({
             name,
             gender,
-            rank,
+            rank: rank || null,
             weight,
             date_of_birth: dob ? dob : null
             // dojo_id update logic omitted for simplicity unless requested, to avoid moving student to unowned dojo accidentally

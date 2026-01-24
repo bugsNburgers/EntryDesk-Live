@@ -16,8 +16,9 @@ import { Label } from '@/components/ui/label'
 import * as XLSX from 'xlsx'
 import { createStudent } from '@/app/dashboard/students/actions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, FileDown, Loader2, AlertCircle } from 'lucide-react'
+import { Upload, FileDown, Loader2, AlertTriangle } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface Dojo {
     id: string
@@ -37,7 +38,10 @@ interface ParsedStudent {
     dob: string
     status: 'pending' | 'success' | 'error'
     message?: string
+    warnings: { [key: string]: string }
 }
+
+const VALID_RANKS = ['white', 'yellow', 'orange', 'green', 'blue', 'purple', 'brown', 'black', 'shodan', 'nidan', 'sandan'];
 
 export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
   const [open, setOpen] = useState(false)
@@ -60,6 +64,37 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
           const lower = String(h).toLowerCase();
           return keywords.some(k => lower.includes(k));
       });
+  }
+
+  const validateStudent = (student: ParsedStudent): ParsedStudent => {
+      const warnings: { [key: string]: string } = {};
+
+      // Rank validation (Soft)
+      if (student.rank) {
+          const r = student.rank.toLowerCase();
+          if (!VALID_RANKS.some(vr => r.includes(vr))) {
+              warnings.rank = `Unknown rank format. valid: ${VALID_RANKS.slice(0, 3).join(', ')}...`;
+          }
+      }
+
+      // Weight validation
+      if (student.weight) {
+          if (isNaN(parseFloat(student.weight))) {
+              warnings.weight = "Invalid weight format (must be a number)";
+          }
+      }
+
+      // DOB validation
+      if (student.dob) {
+           const d = Date.parse(student.dob);
+           // Basic regex check for YYYY-MM-DD if string, or trust Date.parse?
+           // Excel dates might come as numbers, need handling in parsing phase really, but assuming string for now
+           if (isNaN(d)) {
+               warnings.dob = "Invalid date format";
+           }
+      }
+
+      return { ...student, warnings };
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,15 +125,26 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                 const weightIdx = findHeaderIndex(headers, ['weight', 'kg']);
                 const dobIdx = findHeaderIndex(headers, ['dob', 'birth', 'date']);
 
-                const mapped: ParsedStudent[] = rows.map((row, i) => ({
-                    id: i,
-                    name: row[nameIdx] || '',
-                    gender: (row[genderIdx] || '').toLowerCase(),
-                    rank:   (row[rankIdx] || '').toLowerCase(),
-                    weight: row[weightIdx] || '',
-                    dob:    row[dobIdx] || '',
-                    status: 'pending' as const
-                })).filter(s => s.name); // Filter out empty rows
+                const normalizeGender = (val: any) => {
+                    const s = String(val || '').toLowerCase().trim();
+                    if (['m', 'male', 'man', 'boy'].includes(s)) return 'male';
+                    if (['f', 'female', 'woman', 'girl'].includes(s)) return 'female';
+                    return s;
+                };
+
+                const mapped: ParsedStudent[] = rows.map((row, i) => {
+                    const raw: ParsedStudent = {
+                        id: i,
+                        name: row[nameIdx] || '',
+                        gender: normalizeGender(row[genderIdx]),
+                        rank:   (row[rankIdx] || '').toString(),
+                        weight: row[weightIdx] || '',
+                        dob:    row[dobIdx] || '',
+                        status: 'pending' as const,
+                        warnings: {}
+                    };
+                    return validateStudent(raw);
+                }).filter(s => s.name); // Filter out empty rows
 
                 setParsedData(mapped);
                 setStep('review')
@@ -114,6 +160,8 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
   const handleUpdateField = (index: number, field: keyof ParsedStudent, value: string) => {
       const newData = [...parsedData];
       newData[index] = { ...newData[index], [field]: value };
+      // Re-validate
+      newData[index] = validateStudent(newData[index]);
       setParsedData(newData);
   }
 
@@ -127,7 +175,6 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
       const newData = [...parsedData];
       let successCount = 0;
 
-      // Process strictly in serial to avoid overwhelming DB/Server
       for (let i = 0; i < newData.length; i++) {
           const student = newData[i];
           try {
@@ -135,12 +182,19 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
               formData.append('dojo_id', selectedDojo);
               formData.append('name', student.name);
               formData.append('gender', student.gender);
-              formData.append('rank', student.rank);
-              if (student.weight) formData.append('weight', String(student.weight));
-              if (student.dob) formData.append('dob', String(student.dob));
+              
+              // Only append optional fields if they have NO warnings
+              if (student.rank && !student.warnings.rank) {
+                  formData.append('rank', student.rank);
+              }
+              if (student.weight && !student.warnings.weight) {
+                  formData.append('weight', String(student.weight));
+              }
+              if (student.dob && !student.warnings.dob) {
+                  formData.append('dob', String(student.dob));
+              }
 
               await createStudent(formData);
-              // if (res?.error) throw new Error(res.error); // createStudent throws on error
 
               newData[i].status = 'success';
               successCount++;
@@ -148,7 +202,6 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
               newData[i].status = 'error';
               newData[i].message = e.message || 'Failed';
           }
-           // Update UI progress occasionally if needed, but react state batching might hide it in loop
       }
 
       setParsedData(newData);
@@ -170,6 +223,22 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
       setParsedData([]);
   }
 
+  const WarningIcon = ({ msg }: { msg?: string }) => {
+      if (!msg) return null;
+      return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <AlertTriangle className="h-4 w-4 text-amber-500 absolute right-2 top-2.5 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{msg}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      )
+  }
+
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) reset(); }}>
       <DialogTrigger asChild>
@@ -181,7 +250,7 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
         <DialogHeader>
           <DialogTitle>Bulk Upload Students</DialogTitle>
           <DialogDescription>
-            {step === 'upload' ? 'Upload an Excel file to add students.' : 'Review and edit data before importing.'}
+            {step === 'upload' ? 'Upload an Excel file to add students.' : 'Review data. Fields with warnings will be ignored during import.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -194,6 +263,7 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                              <ol className="list-decimal list-inside space-y-1">
                                  <li>Download the template.</li>
                                  <li>Fill in the details. You can be approximate (e.g., "Male" or "M", "White Belt").</li>
+                                 <li>Partial import is allowed: Name and Gender are required, others can be filled later.</li>
                                  <li>Upload here. We'll try to match columns automatically.</li>
                              </ol>
                         </div>
@@ -262,14 +332,17 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                                                 </SelectContent>
                                             </Select>
                                         </TableCell>
-                                        <TableCell>
-                                            <Input value={student.rank} onChange={(e) => handleUpdateField(idx, 'rank', e.target.value)} className="h-8 w-[120px]" />
+                                        <TableCell className="relative group">
+                                            <Input value={student.rank} onChange={(e) => handleUpdateField(idx, 'rank', e.target.value)} className={`h-8 w-[120px] ${student.warnings.rank ? 'border-amber-500 pr-8' : ''}`} />
+                                            <WarningIcon msg={student.warnings.rank} />
                                         </TableCell>
-                                        <TableCell>
-                                            <Input value={student.weight} onChange={(e) => handleUpdateField(idx, 'weight', e.target.value)} className="h-8 w-[80px]" type="number" />
+                                        <TableCell className="relative group">
+                                            <Input value={student.weight} onChange={(e) => handleUpdateField(idx, 'weight', e.target.value)} className={`h-8 w-[80px] ${student.warnings.weight ? 'border-amber-500 pr-8' : ''}`} type="text" />
+                                            <WarningIcon msg={student.warnings.weight} />
                                         </TableCell>
-                                        <TableCell>
-                                            <Input value={student.dob} onChange={(e) => handleUpdateField(idx, 'dob', e.target.value)} className="h-8 w-[130px]" placeholder="YYYY-MM-DD" />
+                                        <TableCell className="relative group">
+                                            <Input value={student.dob} onChange={(e) => handleUpdateField(idx, 'dob', e.target.value)} className={`h-8 w-[130px] ${student.warnings.dob ? 'border-amber-500 pr-8' : ''}`} placeholder="YYYY-MM-DD" />
+                                            <WarningIcon msg={student.warnings.dob} />
                                         </TableCell>
                                         <TableCell>
                                             {student.status === 'error' && <span className="text-xs text-destructive font-medium" title={student.message}>Failed</span>}

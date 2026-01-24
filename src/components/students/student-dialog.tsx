@@ -31,7 +31,7 @@ interface Student {
     id: string
     name: string
     gender: string
-    rank: string
+    rank: string | null
     weight: number | null
     dojo_id: string
     date_of_birth: string | null
