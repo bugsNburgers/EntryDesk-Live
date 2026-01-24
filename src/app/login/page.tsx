@@ -16,11 +16,11 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
              {/* Logo placeholder */}
              <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xl">EM</span>
+                <span className="text-white font-bold text-xl">ED</span>
              </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
-            Event Manager
+            EntryDesk
           </CardTitle>
           <CardDescription>
             Enter your credentials to access your dashboard

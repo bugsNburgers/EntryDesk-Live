@@ -34,7 +34,7 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* Sidebar for Desktop / Navbar for Mobile - Simplified for now */}
       <aside className="w-full md:w-64 bg-secondary border-r p-4 hidden md:flex flex-col gap-4">
-        <div className="text-xl font-bold text-primary mb-4">Event Manager</div>
+        <div className="text-xl font-bold text-primary mb-4">EntryDesk</div>
         <div className="flex flex-col gap-2 flex-1">
            {role === 'organizer' ? (
              <>
@@ -62,7 +62,7 @@ export default async function DashboardLayout({
       {/* Main Content */}
       <main className="flex-1 p-8 bg-background">
         <div className="md:hidden mb-6 flex justify-between items-center">
-            <div className="text-xl font-bold text-primary">Event Manager</div>
+            <div className="text-xl font-bold text-primary">EntryDesk</div>
              {/* Mobile Menu Trigger would go here */}
         </div>
         {children}

@@ -19,8 +19,8 @@ export default async function LandingPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="text-xl font-bold text-primary flex items-center gap-2">
-             <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white text-sm">EM</div>
-             Event Manager
+             <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white text-sm">ED</div>
+             EntryDesk
           </div>
           <nav className="flex gap-4">
             <Link href="/login">
@@ -83,7 +83,7 @@ export default async function LandingPage() {
       </section>
       
       <footer className="border-t py-6 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Event Manager. All rights reserved.
+        © {new Date().getFullYear()} EntryDesk. All rights reserved.
       </footer>
     </div>
   )
