@@ -1,12 +1,14 @@
 import { login, loginWithGoogle, signup } from './actions'
 import { Button } from "@/components/ui/button"
+import { PendingButton } from "@/components/ui/pending-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { NavigationOnPending } from '@/components/app/navigation-on-pending'
+import Link from 'next/link'
 
 export default async function LoginPage() {
   const supabase = await createClient()
@@ -19,6 +21,12 @@ export default async function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1555597673-b21d5c935865?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
+      <div className="absolute left-4 top-4 z-10">
+        <Button asChild variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
+          <Link href="/">← Back to Home</Link>
+        </Button>
+      </div>
+
       <Card className="z-10 w-full max-w-md bg-white/95 backdrop-blur-md border border-white/20 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
@@ -28,7 +36,9 @@ export default async function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
-            EntryDesk
+            <Link href="/" className="hover:underline">
+              EntryDesk
+            </Link>
           </CardTitle>
           <CardDescription>
             Enter your credentials to access your dashboard
@@ -43,6 +53,7 @@ export default async function LoginPage() {
 
             <TabsContent value="login">
               <form action={login}>
+                <NavigationOnPending title="Please wait while we log you in" />
                 <div className="grid gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
@@ -52,15 +63,16 @@ export default async function LoginPage() {
                     <Label htmlFor="password">Password</Label>
                     <Input id="password" name="password" type="password" required />
                   </div>
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                  <PendingButton type="submit" className="w-full bg-primary hover:bg-primary/90" pendingText="Signing in...">
                     Sign in with Email
-                  </Button>
+                  </PendingButton>
                 </div>
               </form>
             </TabsContent>
 
             <TabsContent value="register">
               <form action={signup}>
+                <NavigationOnPending title="Please wait while we log you in" />
                 <div className="grid gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -80,9 +92,9 @@ export default async function LoginPage() {
                     <Label htmlFor="password">Password</Label>
                     <Input id="password" name="password" type="password" required />
                   </div>
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                  <PendingButton type="submit" className="w-full bg-primary hover:bg-primary/90" pendingText="Creating account...">
                     Create Account
-                  </Button>
+                  </PendingButton>
                 </div>
               </form>
             </TabsContent>
@@ -100,12 +112,13 @@ export default async function LoginPage() {
           </div>
 
           <form action={loginWithGoogle}>
-            <Button variant="outline" type="submit" className="w-full hover:bg-accent/10">
+            <NavigationOnPending title="Please wait while we log you in" />
+            <PendingButton variant="outline" type="submit" className="w-full hover:bg-accent/10" pendingText="Opening Google...">
               <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                 <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
               </svg>
               Google
-            </Button>
+            </PendingButton>
           </form>
 
         </CardContent>

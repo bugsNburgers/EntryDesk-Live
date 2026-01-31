@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
+import { AppNavLink } from '@/components/app/nav-link'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -25,17 +26,17 @@ export default async function LandingPage() {
           </div>
           <nav className="flex gap-4">
             {user ? (
-              <Link href="/dashboard">
+              <AppNavLink href="/dashboard">
                 <Button>Dashboard</Button>
-              </Link>
+              </AppNavLink>
             ) : (
               <>
-                <Link href="/login">
+                <AppNavLink href="/login">
                   <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/login">
+                </AppNavLink>
+                <AppNavLink href="/login">
                   <Button>Get Started</Button>
-                </Link>
+                </AppNavLink>
               </>
             )}
           </nav>
@@ -54,13 +55,13 @@ export default async function LandingPage() {
           </p>
           <div className="flex justify-center gap-4">
             {user ? (
-              <Link href="/dashboard">
+              <AppNavLink href="/dashboard">
                 <Button size="lg">Go to Dashboard</Button>
-              </Link>
+              </AppNavLink>
             ) : (
-              <Link href="/login">
+              <AppNavLink href="/login">
                 <Button size="lg">Get Started</Button>
-              </Link>
+              </AppNavLink>
             )}
           </div>
         </div>
@@ -86,9 +87,9 @@ export default async function LandingPage() {
                     <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                       {event.description || "No description provided."}
                     </p>
-                    <Link href={`/login?next=/events/${event.id}`}>
+                    <AppNavLink href={`/login?next=/events/${event.id}`}>
                       <Button className="w-full" variant="outline">View Details</Button>
-                    </Link>
+                    </AppNavLink>
                   </CardContent>
                 </Card>
               ))}
