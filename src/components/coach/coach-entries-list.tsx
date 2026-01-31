@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,17 +8,17 @@ import { Loader2, Trash2, Send, Filter, ChevronLeft, ChevronRight, AlertTriangle
 import { bulkSubmitEntries, bulkDeleteEntries } from "@/app/dashboard/entries/actions"
 import { cn } from "@/lib/utils"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { StudentDialog } from "@/components/students/student-dialog"
 
@@ -26,22 +26,32 @@ interface CoachEntriesListProps {
     entries: any[]
     eventDays: any[]
     dojos: any[]
+    statusPreset?: string
 }
 
 const ITEMS_PER_PAGE = 50
 
-export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesListProps) {
+export function CoachEntriesList({ entries, eventDays, dojos, statusPreset }: CoachEntriesListProps) {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [editingStudent, setEditingStudent] = useState<any>(null)
     const [dialogOpen, setDialogOpen] = useState(false)
-    
+
     // Filters & Pagination
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [dayFilter, setDayFilter] = useState('all')
     const [page, setPage] = useState(1)
+
+    useEffect(() => {
+        if (!statusPreset) return
+        if (statusPreset === statusFilter) return
+
+        setStatusFilter(statusPreset)
+        setPage(1)
+        setSelectedIds(new Set())
+    }, [statusPreset, statusFilter])
 
     // Filter Logic
     const filteredEntries = entries.filter(e => {
@@ -123,19 +133,19 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
 
     return (
         <div className="space-y-4">
-            <StudentDialog 
-                dojos={dojos} 
-                student={editingStudent} 
-                open={dialogOpen} 
+            <StudentDialog
+                dojos={dojos}
+                student={editingStudent}
+                open={dialogOpen}
                 onOpenChange={setDialogOpen}
             />
 
             <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between bg-muted/30 p-3 rounded-md border border-dashed">
                 <div className="flex flex-wrap gap-2 items-center flex-1">
                     <Filter className="h-4 w-4 text-muted-foreground mr-1" />
-                    <Input 
-                        placeholder="Search student..." 
-                        className="h-8 w-[150px] lg:w-[200px]" 
+                    <Input
+                        placeholder="Search student..."
+                        className="h-8 w-[150px] lg:w-[200px]"
                         value={searchQuery}
                         onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                     />
@@ -170,7 +180,7 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-medium mr-2 hidden md:inline">{selectedIds.size} selected</span>
                         <Button size="sm" onClick={handleSubmit} disabled={isSubmitting || isDeleting}>
-                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                             Submit
                         </Button>
                         <Button size="sm" variant="destructive" onClick={handleDelete} disabled={isSubmitting || isDeleting}>
@@ -186,9 +196,9 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                     <thead className="[&_tr]:border-b bg-muted/40 sticky top-0 z-10 backdrop-blur-sm">
                         <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                             <th className="h-12 px-4 align-middle w-[50px]">
-                                <Checkbox 
-                                    checked={isAllSelected} 
-                                    onCheckedChange={(c) => handleSelectAll(!!c)} 
+                                <Checkbox
+                                    checked={isAllSelected}
+                                    onCheckedChange={(c) => handleSelectAll(!!c)}
                                     ref={input => {
                                         if (input) {
                                             // @ts-ignore
@@ -205,10 +215,10 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                     </thead>
                     <tbody className="[&_tr:last-child]:border-0">
                         {paginatedEntries.length === 0 ? (
-                             <tr>
+                            <tr>
                                 <td colSpan={5} className="h-24 text-center text-muted-foreground">
-                                    {filteredEntries.length === 0 
-                                        ? "No entries match your filters." 
+                                    {filteredEntries.length === 0
+                                        ? "No entries match your filters."
                                         : "No active entries. Go to 'Register' tab to add students."}
                                 </td>
                             </tr>
@@ -217,7 +227,7 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                             return (
                                 <tr key={entry.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                     <td className="p-4 align-middle">
-                                        <Checkbox 
+                                        <Checkbox
                                             checked={selectedIds.has(entry.id)}
                                             onCheckedChange={(c) => handleSelectOne(entry.id, !!c)}
                                         />
@@ -229,7 +239,7 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger>
-                                                             <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
                                                         </TooltipTrigger>
                                                         <TooltipContent>
                                                             <p>Missing: {missing.join(', ')}</p>
@@ -238,9 +248,9 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                                                 </TooltipProvider>
                                             )}
                                             <span>{entry.students?.name}</span>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
                                                 className="h-6 w-6 ml-1 text-muted-foreground hover:text-foreground"
                                                 onClick={() => startEdit(entry.students)}
                                             >
@@ -255,9 +265,9 @@ export function CoachEntriesList({ entries, eventDays, dojos }: CoachEntriesList
                                         <span className={cn(
                                             "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent",
                                             entry.status === 'approved' ? "bg-green-100 text-green-800" :
-                                            entry.status === 'rejected' ? "bg-red-100 text-red-800" :
-                                            entry.status === 'submitted' ? "bg-blue-100 text-blue-800" : 
-                                            "text-foreground bg-yellow-100 text-yellow-800"
+                                                entry.status === 'rejected' ? "bg-red-100 text-red-800" :
+                                                    entry.status === 'submitted' ? "bg-blue-100 text-blue-800" :
+                                                        "text-foreground bg-yellow-100 text-yellow-800"
                                         )}>
                                             {entry.status}
                                         </span>

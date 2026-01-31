@@ -17,6 +17,16 @@ This doc captures the main issues encountered while setting up/running the app l
 - **2nd session:** Improved auth feedback + navigation (login/logout messaging, login page back-to-home links).
 - **2nd session:** Clarified role management by populating `public.profiles` for coach/organizer roles.
 
+- **3rd session:** Fixed Next.js prerender error by wrapping global provider usage in `Suspense`.
+- **3rd session:** Fixed coach “Apply to event” 500 by ensuring a `profiles` row exists before inserting `event_applications`.
+- **3rd session:** Improved coach name display (fallback to email/email prefix when `full_name` is missing).
+- **3rd session:** Added “Approved coaches” list panel on event overview (not just the count).
+- **3rd session:** Made dashboard/event metric cards clickable and deep-link to filtered pages.
+- **3rd session:** Compacted organizer per-event Entries/Approvals pages by merging headers into the card UI.
+- **3rd session:** Removed coach tabs and merged overview + entries + register into a single page with a register dialog.
+- **3rd session:** Made organizer event list cards fully clickable (not only the “Manage” button).
+- **3rd session:** Implemented consistent one-step back navigation (history back) across organizer + coach dashboard pages.
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -183,3 +193,250 @@ This section captures the second round of issues and UX improvements around navi
 **Why this matters**
 - Without a `profiles` row, the app can authenticate users, but cannot reliably assign/lookup roles.
 - Long-term, this should be automated (e.g. a DB trigger on `auth.users` insert) to prevent `profiles` from staying empty.
+
+
+---
+
+# Session 3 — Log of Fixes, Additions & Modifications
+
+This session focused on making the dashboard behave like a “real product”: reliable data flows (especially coach→event apply), clearer organizer vs coach meaning, clickable + consistent UI patterns, and navigation that behaves predictably.
+
+Below is a detailed, chronological and technical log of what changed, why it was needed, and how it was implemented.
+
+## 0) Goal / UX direction for Session 3
+
+**Primary UX goals**
+- Reduce “dead UI”: metric cards should be actionable and take you to the relevant filtered view.
+- Remove redundant page headers / duplicated blocks (the “top 3 texts” issue).
+- Keep organizer and coach UI consistent in density and component sizing.
+- Fix coach application flow (coach applies to event) and make approvals/coach names display correctly.
+- Fix back navigation: back should go one step back (history), not jump to a fixed list page.
+
+**Data/logic goals**
+- Prevent hard failures when creating rows that depend on `public.profiles`.
+- Make coach identity display stable even when `profiles.full_name` is empty.
+- Make “Approved coaches” (applications) clearly distinct from “Approved entries” (entries status).
+
+---
+
+## 1) Next.js build/runtime issue: `useSearchParams()` must be wrapped in Suspense (404 prerender)
+
+**Symptom**
+- Production build complained about `useSearchParams()` needing a Suspense boundary for `/_not-found` / `/404` prerender.
+
+**Root cause**
+- Some global client/provider code referenced `useSearchParams()` (directly or indirectly).
+- Next.js requires Suspense boundaries around certain hooks during pre-rendering paths.
+
+**Fix**
+- Wrapped the app provider tree with `<Suspense>` in `src/app/layout.tsx`.
+
+**Why this works**
+- It satisfies Next’s requirement for suspenseful rendering paths without forcing every page to add its own boundary.
+
+---
+
+## 2) Coach “Apply to event” failing (POST 500 + “Error applying to event”)
+
+**Symptom**
+- Coaches clicking “Apply” saw 500 errors and an alert failure.
+- The server-side action inserting into `event_applications` failed.
+
+**Root cause**
+- `event_applications.coach_id` references `public.profiles(id)`.
+- For many users, there was no row in `public.profiles` yet (auth exists in `auth.users`, but the app identity exists in `public.profiles`).
+- Without a profile row, inserts fail (FK) and/or RLS blocks follow-up queries.
+
+**Fix (server action hardening)**
+- Updated `src/app/dashboard/events-browser/actions/index.ts` to:
+  1) Fetch the current user.
+  2) Ensure a `profiles` row exists for `user.id` (create it if missing).
+  3) Use an idempotent “already applied?” check via `.maybeSingle()`.
+  4) Handle unique constraint races (`23505`) as “Already applied”.
+  5) On profile creation, best-effort populate `profiles.full_name` from user metadata or email prefix.
+
+**Fix (client refresh + UX)**
+- Updated `src/components/events/apply-button.tsx` to:
+  - call the server action
+  - surface the returned message clearly
+  - call `router.refresh()` to update the UI after apply succeeds
+
+**Why this is correct**
+- It prevents a hard dependency on “profiles must be pre-provisioned.”
+- It makes the apply action safe under concurrency (two fast clicks / double submissions).
+- It improves display data quality (names) without requiring an immediate DB trigger.
+
+---
+
+## 3) Organizer approvals: coach name not appearing
+
+**Symptom**
+- Organizer approvals list showed blank coach names.
+
+**Root cause**
+- `profiles.full_name` was empty for some coaches.
+- Some UI assumed full_name always existed.
+
+**Fix**
+- Approvals UI now falls back in this order:
+  1) `profiles.full_name`
+  2) `profiles.email`
+  3) email prefix
+  4) `—`
+
+**Where**
+- Organizer approvals pages (global and per-event):
+  - `src/app/dashboard/approvals/page.tsx`
+  - `src/app/dashboard/events/[id]/approvals/page.tsx`
+
+**Why**
+- A display name should never be “missing”; fallback prevents confusing empty UI.
+
+---
+
+## 4) “Approved entries” confusion vs “Approved coaches”
+
+**Symptom**
+- User expected approved coaches to show in “Approved entries” or vice versa.
+
+**Root cause (domain mismatch)**
+- “Approved entries” refers to `entries.status = 'approved'`.
+- “Approved coaches” refers to `event_applications.status = 'approved'`.
+- These are different tables and workflows.
+
+**Fix / Clarification added in UI**
+- Event overview now shows an explicit “Approved Coaches” metric.
+- Approvals pages emphasize that they are *coach approvals*, not entries approvals.
+
+**Why**
+- Prevents product confusion and makes metrics map directly to their table/state.
+
+---
+
+## 5) Deep-linking: dashboard metric cards behave like buttons
+
+**Symptom**
+- Dashboard stats looked clickable but didn’t navigate.
+- User wanted “cards as buttons” to go to relevant pages.
+
+**Fix**
+- Updated dashboards to make metric cards link to appropriate routes and filtered views.
+- Organizer event overview metrics link into the correct per-event entries/approvals pages with query params.
+
+**Where**
+- Organizer dashboard: `src/app/dashboard/page.tsx`
+- Event overview: `src/app/dashboard/events/[id]/page.tsx`
+- Coach dashboard: `src/components/coach/coach-overview.tsx` and `src/components/coach/coach-dashboard.tsx`
+
+**Why**
+- Metrics become navigation primitives: “see the number → click to see the list.”
+
+---
+
+## 6) Organizer per-event Entries/Approvals pages: redundant top blocks + inconsistent sizing
+
+**Symptom**
+- Entries/Approvals pages had separate header blocks, making one page feel “big” and the other “small.”
+
+**Fix**
+- Merged title/count/actions/filters into the Card header for both pages.
+- Removed redundant top text blocks.
+
+**Where**
+- `src/app/dashboard/events/[id]/entries/page.tsx`
+- `src/app/dashboard/events/[id]/approvals/page.tsx`
+
+**Why**
+- One consistent page pattern improves perceived quality and reduces vertical clutter.
+
+---
+
+## 7) Organizer event overview: show Approved Coaches list
+
+**Symptom**
+- Under “Approved Coaches” the metric existed, but user wanted names visible.
+
+**Fix**
+- Event overview now queries approved `event_applications` joined to `profiles` and renders a compact “Approved coaches” panel.
+
+**Where**
+- `src/app/dashboard/events/[id]/page.tsx`
+
+**Why**
+- A list is more useful than a count; names enable verification and reduce admin friction.
+
+---
+
+## 8) Coach event UI: removed tabs; merged overview/entries/register into one page
+
+**Symptom**
+- Tabs (“Overview / Entries / Register Athletes”) felt heavy and forced extra clicks.
+
+**Fix**
+- Refactored coach event view into a single-page layout:
+  - Overview metrics always visible
+  - Entries list always visible
+  - Quick filter buttons (All/Drafts/Submitted/Approved)
+  - “Register athletes” moved into a Dialog modal (faster flow)
+
+**Where**
+- `src/components/coach/coach-dashboard.tsx`
+- `src/components/coach/coach-overview.tsx`
+- `src/components/coach/coach-entries-list.tsx`
+
+**Why**
+- Fewer navigation affordances = fewer ways for users to get lost.
+- Modal register flow keeps context (event) while completing the task.
+
+---
+
+## 9) Events list: make the entire event card clickable (not only “Manage”)
+
+**Symptom**
+- On organizer events list, only the “Manage” button navigated.
+
+**Fix**
+- Made the entire card clickable using a full-card overlay link.
+- Kept “Manage” button above the overlay via z-index so it still works.
+
+**Where**
+- `src/app/dashboard/events/page.tsx`
+
+**Why**
+- More forgiving click target, faster navigation, and matches modern dashboard UX.
+
+---
+
+## 10) Back button behavior: must go one step back (history) everywhere
+
+**Symptom**
+- Back arrow on organizer event pages jumped directly to `/dashboard/events` instead of going back one step (e.g., Approved Coaches → Event dashboard).
+
+**Root cause**
+- Back controls were implemented as normal links to fixed routes, not history navigation.
+
+**Fix (reusable component)**
+- Added a reusable client component that uses `router.back()` with a fallback when there’s no history (opened in a new tab):
+  - `src/components/app/history-back.tsx`
+
+**Fix (made it consistent everywhere)**
+- Added a single global back button to the dashboard shell so it appears on every dashboard page (organizer + coach).
+- Removed page-specific back controls that could conflict or jump to fixed routes.
+- Also updated login to use a one-step back with fallback to home.
+
+**Where**
+- Global dashboard back: `src/app/dashboard/layout.tsx`
+- Removed per-event back (duplicate): `src/app/dashboard/events/[id]/layout.tsx`
+- Removed coach local back (duplicate): `src/components/coach/coach-dashboard.tsx`
+- Login back uses history: `src/app/login/page.tsx`
+
+**Why**
+- This matches user expectation for a “Back” affordance.
+- It prevents accidental jumps to list pages when the user wanted to go back one screen.
+
+---
+
+## 11) Notes / Known state
+
+- `npm run build` succeeds.
+- If `npm run dev` still exits with code 1, the next step is to capture the full terminal output (stack trace / error message) so we can address the root cause. Build passing usually means the issue is dev-only (often environment, runtime fetch, or a route that only executes in dev).

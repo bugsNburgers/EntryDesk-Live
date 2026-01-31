@@ -1,11 +1,17 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CoachOverview } from "./coach-overview"
 import { CoachEntriesList } from "./coach-entries-list"
 import { CoachStudentRegister } from "./coach-student-register"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { useCallback, useMemo, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 interface CoachDashboardProps {
     event: any
@@ -17,66 +23,66 @@ interface CoachDashboardProps {
 }
 
 export function CoachDashboard({ event, stats, entries, students, eventDays, dojos }: CoachDashboardProps) {
-    const existingStudentIds = new Set(entries.map(e => e.student_id))
+    const existingStudentIds = useMemo(() => new Set(entries.map(e => e.student_id)), [entries])
+
+    const [statusPreset, setStatusPreset] = useState<string>('all')
+    const [registerOpen, setRegisterOpen] = useState(false)
+    const entriesRef = useRef<HTMLDivElement | null>(null)
+
+    const selectStatus = useCallback((nextStatus: string) => {
+        setStatusPreset(nextStatus)
+        // Jump user straight to the entries table.
+        entriesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, [])
 
     return (
-        <div className="space-y-6 h-[calc(100vh-4rem)] flex flex-col">
-            <div className="flex flex-col gap-4 flex-none">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Link href="/dashboard/entries" className="hover:text-foreground flex items-center gap-1">
-                        <ArrowLeft className="h-3 w-3" /> Back to All Events
-                    </Link>
-                </div>
-                <div>
-                     <h1 className="text-3xl font-bold tracking-tight">{event.title}</h1>
-                     <p className="text-muted-foreground">Manage your team's participation.</p>
+        <div className="space-y-8">
+            <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">{event.title}</h1>
+                        <p className="text-muted-foreground">Manage your team's participation.</p>
+                    </div>
+                    <Button onClick={() => setRegisterOpen(true)}>Register athletes</Button>
                 </div>
             </div>
 
-            <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between border-b pb-2 mb-4">
-                    <TabsList>
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="entries">
-                            Entries 
-                            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
-                                {entries.length}
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger value="register">
-                            Register Athletes
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
+            <CoachOverview stats={stats} entries={entries} onSelectStatus={selectStatus} />
 
-                <div className="flex-1 overflow-auto">
-                    <TabsContent value="overview" className="h-full m-0">
-                        <CoachOverview stats={stats} />
-                    </TabsContent>
-                    
-                    <TabsContent value="entries" className="h-full m-0 space-y-4">
-                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-medium">Active Entries</h3>
-                            <p className="text-sm text-muted-foreground">Manage existing entries.</p>
-                        </div>
-                        <CoachEntriesList entries={entries} eventDays={eventDays} dojos={dojos} />
-                    </TabsContent>
-                    
-                    <TabsContent value="register" className="h-full m-0 space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-medium">Student Registry</h3>
-                            <p className="text-sm text-muted-foreground">Select students to add to this event.</p>
-                        </div>
-                        <CoachStudentRegister 
-                            students={students} 
-                            existingStudentIds={existingStudentIds} 
-                            eventId={event.id}
-                            eventDays={eventDays}
-                            dojos={dojos}
-                        />
-                    </TabsContent>
+            <div ref={entriesRef} className="space-y-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h3 className="text-lg font-medium">Entries</h3>
+                        <p className="text-sm text-muted-foreground">Filter, submit, and manage your entries.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => selectStatus('all')}>All</Button>
+                        <Button variant="outline" onClick={() => selectStatus('draft')}>Drafts</Button>
+                        <Button variant="outline" onClick={() => selectStatus('submitted')}>Submitted</Button>
+                        <Button variant="outline" onClick={() => selectStatus('approved')}>Approved</Button>
+                    </div>
                 </div>
-            </Tabs>
+                <CoachEntriesList entries={entries} eventDays={eventDays} dojos={dojos} statusPreset={statusPreset} />
+            </div>
+
+            <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Register athletes</DialogTitle>
+                        <DialogDescription>
+                            Pick students from your roster and add them to this event.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <CoachStudentRegister
+                        students={students}
+                        existingStudentIds={existingStudentIds}
+                        eventId={event.id}
+                        eventDays={eventDays}
+                        dojos={dojos}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

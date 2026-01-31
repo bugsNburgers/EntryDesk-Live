@@ -9,12 +9,13 @@ import { Search } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { StudentDataTable } from '@/components/students/student-data-table'
+import { DashboardPageHeader } from '@/components/dashboard/page-header'
 
 export default async function StudentsPage({
-    searchParams,
-  }: {
-    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-  }) {
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,20 +43,20 @@ export default async function StudentsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight">Students</h1>
-            <p className="text-muted-foreground">Manage your athletes across all dojos.</p>
-        </div>
-        <div className="flex gap-2">
+      <DashboardPageHeader
+        title="Students"
+        description="Manage your athletes across all dojos."
+        actions={
+          <>
             <StudentBulkUpload dojos={dojos || []} />
             <StudentDialog dojos={dojos || []} />
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <Card>
         <CardContent className="p-6">
-            <StudentDataTable data={students || []} dojos={dojos || []} />
+          <StudentDataTable data={students || []} dojos={dojos || []} />
         </CardContent>
       </Card>
     </div>
