@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 
 export default async function LandingPage() {
   const supabase = await createClient()
-  
+  const { data: { user } } = await supabase.auth.getUser()
+
   // Fetch public events
   const { data: events } = await supabase
     .from('events')
@@ -19,16 +20,24 @@ export default async function LandingPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="text-xl font-bold text-primary flex items-center gap-2">
-             <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white text-sm">ED</div>
-             EntryDesk
+            <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white text-sm">ED</div>
+            EntryDesk
           </div>
           <nav className="flex gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link href="/login">
-              <Button>Get Started</Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard">
+                <Button>Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">Login</Button>
+                </Link>
+                <Link href="/login">
+                  <Button>Get Started</Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -40,9 +49,20 @@ export default async function LandingPage() {
             Martial Arts Event Management
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            The professional platform for Tournaments, Seminars, and Black Belt Tests. 
+            The professional platform for Tournaments, Seminars, and Black Belt Tests.
             Streamlined for Organizers and Coaches.
           </p>
+          <div className="flex justify-center gap-4">
+            {user ? (
+              <Link href="/dashboard">
+                <Button size="lg">Go to Dashboard</Button>
+              </Link>
+            ) : (
+              <Link href="/login">
+                <Button size="lg">Get Started</Button>
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
@@ -50,15 +70,15 @@ export default async function LandingPage() {
       <section className="py-12 flex-1">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold mb-6">Upcoming Events</h2>
-          
+
           {events && events.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {events.map((event) => (
                 <Card key={event.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                         <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-                         <span className="text-xs px-2 py-1 bg-secondary rounded-full capitalize">{event.event_type}</span>
+                      <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                      <span className="text-xs px-2 py-1 bg-secondary rounded-full capitalize">{event.event_type}</span>
                     </div>
                     <CardDescription>{new Date(event.start_date).toLocaleDateString()}</CardDescription>
                   </CardHeader>
@@ -67,7 +87,7 @@ export default async function LandingPage() {
                       {event.description || "No description provided."}
                     </p>
                     <Link href={`/login?next=/events/${event.id}`}>
-                         <Button className="w-full" variant="outline">View Details</Button>
+                      <Button className="w-full" variant="outline">View Details</Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -81,7 +101,7 @@ export default async function LandingPage() {
           )}
         </div>
       </section>
-      
+
       <footer className="border-t py-6 text-center text-sm text-muted-foreground">
         © {new Date().getFullYear()} EntryDesk. All rights reserved.
       </footer>
