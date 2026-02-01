@@ -27,6 +27,14 @@ This doc captures the main issues encountered while setting up/running the app l
 - **3rd session:** Made organizer event list cards fully clickable (not only the “Manage” button).
 - **3rd session:** Implemented consistent one-step back navigation (history back) across organizer + coach dashboard pages.
 
+- **4th session:** Merged coach “Browse Events” into dashboard home and removed the separate nav section.
+- **4th session:** Fixed “Approved” applications still showing “Request to Participate” (Apply button state).
+- **4th session:** Moved the global back button into the sidebar to reduce page-header clutter.
+- **4th session:** Added a mobile slide-out dashboard nav (hamburger + sheet) to match desktop sidebar.
+- **4th session:** Removed Settings from both organizer + coach dashboard navigation.
+- **4th session:** Improved light-mode separation (borders/shadows) consistently across dashboard pages.
+- **4th session:** Fixed multiple “Parsing ecmascript source code failed” issues caused by malformed JSX.
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -440,3 +448,158 @@ Below is a detailed, chronological and technical log of what changed, why it was
 
 - `npm run build` succeeds.
 - If `npm run dev` still exits with code 1, the next step is to capture the full terminal output (stack trace / error message) so we can address the root cause. Build passing usually means the issue is dev-only (often environment, runtime fetch, or a route that only executes in dev).
+
+---
+
+# Session 4 — Dashboard UX / Navigation Parity (Desktop + Mobile) & Light-Mode Separation
+
+This session focused on reducing dashboard clutter, making coach “event browsing” feel first-class, ensuring mobile navigation parity with the desktop sidebar, and making light mode visually readable (clear separation without harsh borders).
+
+## 0) Goal / UX direction for Session 4
+
+**Primary UX goals**
+- Remove redundant navigation items and make the dashboard home more useful.
+- Ensure mobile has a real “side panel” experience.
+- Keep the back navigation available everywhere, but without consuming valuable content/header space.
+- Improve light-mode depth/separation consistently across dashboard pages.
+
+---
+
+## 1) Coach event browsing: move “Browse Events” into dashboard home
+
+**Symptom**
+- “Browse Events” existed as a separate dashboard section/page/link, but the user wanted it inside the dashboard home.
+
+**Fix**
+- Added a “Browse Events” section to the coach dashboard home rendering public events.
+- Removed the separate “Browse Events” nav entry so users don’t have two places for the same thing.
+
+**Where**
+- `src/app/dashboard/page.tsx`
+- `src/app/dashboard/layout.tsx`
+
+**Why**
+- Home becomes the default “start here” surface for coaches.
+- Fewer duplicate navigation targets reduces confusion.
+
+---
+
+## 2) Coach application UI: Approved/Pending/Rejected still showed “Request to Participate”
+
+**Symptom**
+- Even when an application was already approved, the UI still showed the action as if it wasn’t applied.
+
+**Root cause**
+- The caller was not providing the application `status` into the `ApplyButton`, so it rendered its default “apply” state.
+
+**Fix**
+- Build an `event_id -> status` map from `event_applications` and pass `status={status}` into `ApplyButton`.
+
+**Where**
+- `src/app/dashboard/page.tsx`
+
+**Why**
+- `ApplyButton` already supports status-driven rendering; the issue was the wrong prop/inputs at the call site.
+
+---
+
+## 3) Back button “takes too much space”: reduce clutter by moving it into the sidebar
+
+**Symptom**
+- The back button was taking too much vertical/header space and competing with page content.
+
+**Fix**
+- Kept the global history back behavior, but relocated the back control into the dashboard sidebar (desktop).
+- Used a small gating/wrapper component so it renders consistently from the dashboard shell.
+
+**Where**
+- `src/app/dashboard/layout.tsx`
+- `src/components/dashboard/dashboard-back-gate.tsx`
+- `src/components/app/history-back.tsx`
+
+**Why**
+- The back action stays available “at any cost,” but does not inflate each page layout.
+
+---
+
+## 4) Settings removed from both organizer + coach navigation
+
+**Symptom**
+- Dashboard nav included Settings, but it wasn’t needed.
+
+**Fix**
+- Removed Settings UI from the dashboard sidebar/nav.
+
+**Where**
+- `src/app/dashboard/layout.tsx`
+
+**Why**
+- Reduces noise and keeps nav focused on core tasks.
+
+---
+
+## 5) Mobile dashboard had no side panel: add hamburger + slide-out nav (Sheet)
+
+**Symptom**
+- On mobile there was no functional equivalent to the desktop sidebar.
+
+**Fix**
+- Added a mobile top bar with a hamburger trigger.
+- Implemented a slide-out left “Sheet” drawer and rendered the dashboard navigation inside it.
+
+**Where**
+- `src/app/dashboard/layout.tsx`
+- `src/components/dashboard/mobile-nav.tsx`
+- `src/components/ui/sheet.tsx`
+
+**Why**
+- Mobile users get the same navigation affordances as desktop, without compressing the UI into an always-visible sidebar.
+
+---
+
+## 6) Build error: “Parsing ecmascript source code failed” (malformed JSX)
+
+**Symptom**
+- Next.js dev/build failed with: `Parsing ecmascript source code failed`.
+
+**Root cause**
+- Malformed JSX (missing closing tags / incorrect nesting) introduced during iterative UI changes.
+
+**Fix**
+- Corrected JSX structure (balanced tags, fixed nesting) in the affected components/pages.
+
+**Where**
+- `src/app/dashboard/page.tsx`
+- `src/app/login/page.tsx`
+- `src/components/dashboard/mobile-nav.tsx`
+- `src/components/dashboard/dashboard-back-gate.tsx`
+
+**Why**
+- These failures are parse-time errors; the only real fix is restoring valid JSX.
+
+---
+
+## 7) Light mode lacked separation/depth: apply consistent borders + shadows across dashboard
+
+**Symptom**
+- Dark mode looked fine, but in light mode cards and containers blended together.
+
+**Root cause**
+- Some components relied on theme tokens that were too subtle in light mode.
+
+**Fix**
+- Switched key dashboard wrappers/cards to explicit light/dark border utilities (e.g. `border-black/10` + `dark:border-white/10`).
+- Added soft gradients + shadows to make card boundaries readable in light mode.
+
+**Where**
+- `src/app/dashboard/layout.tsx`
+- `src/app/dashboard/page.tsx`
+- `src/app/dashboard/events/page.tsx`
+- `src/app/dashboard/students/page.tsx`
+- `src/app/dashboard/approvals/page.tsx`
+- `src/app/dashboard/entries/page.tsx`
+- `src/app/dashboard/events-browser/page.tsx`
+- `src/app/dashboard/dojos/page.tsx`
+
+**Why**
+- Improves readability and perceived quality without adding heavy/harsh borders.

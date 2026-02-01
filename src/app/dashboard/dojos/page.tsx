@@ -1,11 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, LayoutGrid, Users } from 'lucide-react'
 import { DojoDialog } from '@/components/dojos/dojo-dialog'
 import { DojoActions } from '@/components/dojos/dojo-actions'
 import { DashboardPageHeader } from '@/components/dashboard/page-header'
-import { Badge } from '@/components/ui/badge'
 
 export default async function DojosPage() {
     const supabase = await createClient()
@@ -14,7 +12,6 @@ export default async function DojosPage() {
     if (!user) return null
 
     // Fetch coach's dojos with student count
-    // Using explicit join for count
     const { data: dojos } = await supabase
         .from('dojos')
         .select('*, students(count)')
@@ -22,48 +19,54 @@ export default async function DojosPage() {
         .order('created_at', { ascending: false })
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <DashboardPageHeader
                 title="Dojos"
                 description="Manage your schools and locations."
                 actions={
                     <DojoDialog>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Add Dojo
+                        <Button size="sm">
+                            <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Dojo
                         </Button>
                     </DojoDialog>
                 }
             />
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {dojos && dojos.length > 0 ? (
                     dojos.map((dojo) => (
-                        <Card key={dojo.id} className="hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <CardTitle className="text-base">{dojo.name}</CardTitle>
-                                        <CardDescription>Dojo roster & students</CardDescription>
+                        <div
+                            key={dojo.id}
+                            className="group rounded-2xl border border-black/5 bg-gradient-to-b from-background/95 to-background/70 p-3 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.25)] transition-colors hover:bg-background/80 dark:border-white/10 dark:bg-background/40 dark:from-background/60 dark:to-background/30 dark:shadow-black/40"
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted">
+                                        <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
                                     </div>
-                                    <DojoActions dojo={dojo} />
+                                    <div>
+                                        <div className="text-sm font-medium">{dojo.name}</div>
+                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                            <Users className="h-2.5 w-2.5" />
+                                            {/* @ts-ignore */}
+                                            <span>{dojo.students?.[0]?.count || 0} students</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="flex items-center justify-between">
-                                <div className="text-sm text-muted-foreground">
-                                    {/* @ts-ignore - Supabase types might imply array but count returns object/number depending on query */}
-                                    {dojo.students?.[0]?.count || 0} students
-                                </div>
-                                <Badge variant="secondary">Coach</Badge>
-                            </CardContent>
-                        </Card>
+                                <DojoActions dojo={dojo} />
+                            </div>
+                        </div>
                     ))
                 ) : (
-                    <div className="col-span-full rounded-xl border-2 border-dashed bg-muted/10 py-12 text-center text-muted-foreground">
-                        <p className="font-medium text-foreground">No dojos yet</p>
-                        <p className="text-sm">Create your first dojo to start adding students.</p>
-                        <div className="mt-4 inline-flex">
+                    <div className="col-span-full rounded-2xl border border-dashed border-black/10 bg-muted/20 py-8 text-center dark:border-white/10">
+                        <LayoutGrid className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">No dojos yet</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Create your first dojo to start adding students.</p>
+                        <div className="mt-3">
                             <DojoDialog>
-                                <Button variant="outline">Create your first dojo</Button>
+                                <Button variant="outline" size="sm" className="h-7 text-xs">
+                                    Create your first dojo
+                                </Button>
                             </DojoDialog>
                         </div>
                     </div>

@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardPageHeader } from '@/components/dashboard/page-header'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { ArrowRight, Calendar, Users, ClipboardList, LayoutGrid, CheckSquare, FolderOpen, ListTodo, MapPin, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { ApplyButton } from '@/components/events/apply-button'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
     const role = profile?.role || 'coach'
     const name = profile?.full_name || user.email
 
-    // Counts (for a “real” dashboard feel)
+
     const isOrganizer = role === 'organizer'
 
     const { count: eventsCount } = isOrganizer
@@ -71,103 +72,300 @@ export default async function DashboardPage() {
             .eq('coach_id', user.id)
         : { count: 0 }
 
+    // Fetch Public events for Coach
+    const { data: publicEvents } = !isOrganizer
+        ? await supabase
+            .from('events')
+            .select('*')
+            .eq('is_public', true)
+            .order('start_date', { ascending: true })
+        : { data: [] }
+
+    // Fetch Applications for Coach
+    const { data: applications } = !isOrganizer && user
+        ? await supabase
+            .from('event_applications')
+            .select('event_id, status')
+            .eq('coach_id', user.id)
+        : { data: [] }
+
+    const appMap = new Map()
+    applications?.forEach(app => {
+        appMap.set(app.event_id, app.status)
+    })
+
+    const getStatusIcon = (status: string | undefined) => {
+        if (status === 'approved') return <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-500" />
+        if (status === 'pending') return <Clock className="h-3 w-3 text-amber-600 dark:text-amber-500" />
+        if (status === 'rejected') return <XCircle className="h-3 w-3 text-red-600 dark:text-red-500" />
+        return null
+    }
+
+    const getStatusText = (status: string | undefined) => {
+        if (status === 'approved') return 'Approved'
+        if (status === 'pending') return 'Pending'
+        if (status === 'rejected') return 'Rejected'
+        return null
+    }
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <DashboardPageHeader
-                title={`Welcome back, ${name}`}
+                title={`Welcome, ${name?.split(' ')[0] ?? 'User'}`}
                 description={isOrganizer ? 'Manage events, approvals, and exports.' : 'Manage your dojos, students, and entries.'}
                 actions={
                     isOrganizer ? (
                         <Link href="/dashboard/events">
-                            <Button>Manage Events</Button>
+                            <Button size="sm" className="shadow-lg shadow-primary/20 rounded-full">Manage Events</Button>
                         </Link>
                     ) : (
-                        <Link href="/dashboard/events-browser">
-                            <Button>Browse Events</Button>
-                        </Link>
+                        null
                     )
                 }
             />
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Bento Grid Metrics */}
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {isOrganizer ? (
                     <>
-                        <Link href="/dashboard/events" className="group block focus:outline-none">
-                            <Card className="cursor-pointer transition-shadow group-hover:shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Events</CardTitle>
-                                    <CardDescription>Created by you</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex items-end justify-between">
-                                    <div className="text-3xl font-semibold tracking-tight">{eventsCount ?? 0}</div>
-                                    <Badge variant="secondary">Organizer</Badge>
-                                </CardContent>
-                            </Card>
+                        {/* Events Tile */}
+                        <Link
+                            href="/dashboard/events"
+                            className="group relative overflow-hidden rounded-2xl border border-black/5 bg-gradient-to-b from-background/95 to-background/60 p-6 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.25)] transition-all hover:bg-background/80 hover:shadow-[0_18px_40px_-26px_rgba(0,0,0,0.30)] hover:-translate-y-1 dark:border-white/10 dark:bg-background/40 dark:from-background/60 dark:to-background/30 dark:shadow-black/40"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Calendar className="h-24 w-24" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-4">
+                                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                        <Calendar className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Events</span>
+                                </div>
+                                <div className="text-3xl font-bold tabular-nums text-foreground">{eventsCount ?? 0}</div>
+                                <div className="mt-1 text-xs text-muted-foreground font-medium">Active tournaments</div>
+                            </div>
                         </Link>
-                        <Link href="/dashboard/approvals" className="group block focus:outline-none">
-                            <Card className="cursor-pointer transition-shadow group-hover:shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Pending approvals</CardTitle>
-                                    <CardDescription>Coach applications</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex items-end justify-between">
-                                    <div className="text-3xl font-semibold tracking-tight">{pendingApprovalsCount ?? 0}</div>
-                                    <Badge variant={(pendingApprovalsCount ?? 0) > 0 ? 'warning' : 'secondary'}>Queue</Badge>
-                                </CardContent>
-                            </Card>
+
+                        {/* Pending Approvals Tile */}
+                        <Link
+                            href="/dashboard/approvals"
+                            className="group relative overflow-hidden rounded-2xl border border-black/5 bg-gradient-to-b from-background/95 to-background/60 p-6 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.25)] transition-all hover:bg-background/80 hover:shadow-[0_18px_40px_-26px_rgba(0,0,0,0.30)] hover:-translate-y-1 dark:border-white/10 dark:bg-background/40 dark:from-background/60 dark:to-background/30 dark:shadow-black/40"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <CheckSquare className="h-24 w-24" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-4">
+                                    <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500">
+                                        <CheckSquare className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Approvals</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-bold tabular-nums text-foreground">{pendingApprovalsCount ?? 0}</span>
+                                    {(pendingApprovalsCount ?? 0) > 0 && (
+                                        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">
+                                            Pending
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground font-medium">Coach applications</div>
+                            </div>
                         </Link>
-                        <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-base">Quick actions</CardTitle>
-                                <CardDescription>Common organizer tasks</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-2">
-                                <Link href="/dashboard/events" className="text-sm font-medium hover:underline">Create / manage events →</Link>
-                                <Link href="/dashboard/approvals" className="text-sm font-medium hover:underline">Review approvals →</Link>
-                            </CardContent>
-                        </Card>
+
+                        {/* Quick Actions - spans 2 cols */}
+                        <div className="col-span-1 sm:col-span-2 rounded-2xl border border-black/10 bg-gradient-to-b from-background/90 to-background/50 p-6 backdrop-blur-sm shadow-md shadow-black/5 dark:border-white/10 dark:shadow-black/40">
+                            <div className="flex items-center gap-3 text-muted-foreground mb-6">
+                                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
+                                    <ListTodo className="h-4 w-4" />
+                                </div>
+                                <span className="text-xs font-semibold uppercase tracking-wider">Quick Actions</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Link href="/dashboard/events">
+                                    <div className="flex items-center gap-3 p-3 rounded-xl border border-black/10 bg-white/5 shadow-sm shadow-black/5 hover:bg-primary/5 hover:border-primary/20 transition-colors group cursor-pointer dark:border-white/10 dark:shadow-black/40">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                            <Calendar className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-sm text-foreground">Create Event</div>
+                                            <div className="text-xs text-muted-foreground">Start a new tournament</div>
+                                        </div>
+                                    </div>
+                                </Link>
+                                <Link href="/dashboard/approvals">
+                                    <div className="flex items-center gap-3 p-3 rounded-xl border border-black/10 bg-white/5 shadow-sm shadow-black/5 hover:bg-orange-500/5 hover:border-orange-500/20 transition-colors group cursor-pointer dark:border-white/10 dark:shadow-black/40">
+                                        <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
+                                            <CheckSquare className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-sm text-foreground">Review Queue</div>
+                                            <div className="text-xs text-muted-foreground">Process applications</div>
+                                        </div>
+                                    </div>
+                                </Link>
+                            </div>
+                        </div>
                     </>
                 ) : (
                     <>
-                        <Link href="/dashboard/dojos" className="group block focus:outline-none">
-                            <Card className="cursor-pointer transition-shadow group-hover:shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Dojos</CardTitle>
-                                    <CardDescription>You manage</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex items-end justify-between">
-                                    <div className="text-3xl font-semibold tracking-tight">{dojosCount ?? 0}</div>
-                                    <Badge variant="secondary">Coach</Badge>
-                                </CardContent>
-                            </Card>
+                        {/* Dojos Tile */}
+                        <Link
+                            href="/dashboard/dojos"
+                            className="group relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-background/90 to-background/50 p-6 shadow-md shadow-black/5 transition-all hover:bg-background/70 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-1 dark:border-white/10 dark:shadow-black/40"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <LayoutGrid className="h-24 w-24" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-4">
+                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                                        <LayoutGrid className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Dojos</span>
+                                </div>
+                                <div className="text-3xl font-bold tabular-nums text-foreground">{dojosCount ?? 0}</div>
+                                <div className="mt-1 text-xs text-muted-foreground font-medium">Managed dojos</div>
+                            </div>
                         </Link>
-                        <Link href="/dashboard/students" className="group block focus:outline-none">
-                            <Card className="cursor-pointer transition-shadow group-hover:shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Students</CardTitle>
-                                    <CardDescription>In your dojos</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex items-end justify-between">
-                                    <div className="text-3xl font-semibold tracking-tight">{studentsCount ?? 0}</div>
-                                    <Badge variant="secondary">Roster</Badge>
-                                </CardContent>
-                            </Card>
+
+                        {/* Students Tile */}
+                        <Link
+                            href="/dashboard/students"
+                            className="group relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-background/90 to-background/50 p-6 shadow-md shadow-black/5 transition-all hover:bg-background/70 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-1 dark:border-white/10 dark:shadow-black/40"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Users className="h-24 w-24" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-4">
+                                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                                        <Users className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Students</span>
+                                </div>
+                                <div className="text-3xl font-bold tabular-nums text-foreground">{studentsCount ?? 0}</div>
+                                <div className="mt-1 text-xs text-muted-foreground font-medium">Total registered</div>
+                            </div>
                         </Link>
-                        <Link href="/dashboard/entries" className="group block focus:outline-none">
-                            <Card className="cursor-pointer transition-shadow group-hover:shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base">Entries</CardTitle>
-                                    <CardDescription>Submitted or draft</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex items-end justify-between">
-                                    <div className="text-3xl font-semibold tracking-tight">{entriesCount ?? 0}</div>
-                                    <Badge variant="secondary">Entries</Badge>
-                                </CardContent>
-                            </Card>
+
+                        {/* Entries Tile */}
+                        <Link
+                            href="/dashboard/entries"
+                            className="group relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-background/90 to-background/50 p-6 shadow-md shadow-black/5 transition-all hover:bg-background/70 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-1 dark:border-white/10 dark:shadow-black/40"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <ClipboardList className="h-24 w-24" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-4">
+                                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                                        <ClipboardList className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Entries</span>
+                                </div>
+                                <div className="text-3xl font-bold tabular-nums text-foreground">{entriesCount ?? 0}</div>
+                                <div className="mt-1 text-xs text-muted-foreground font-medium">Tournament entries</div>
+                            </div>
+                        </Link>
+
+                        {/* Browse Events Tile (Now just a consistent tile, maybe keep it or merge intent later, but user said remove separate section)
+                            User said "remove browse events separate section and add it in the home itself"
+                            The tile was there, but the section below is what they want. 
+                            I'll keep this tile as a stats summary maybe? Or remove it since the full list is below?
+                            "add it down these ui elements as browse events"
+                            I think keeping the tile is fine as a quick link, but the full list is requested below.
+                        */}
+                        <Link
+                            href="#browse-events"
+                            className="group relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-background/90 to-background/50 p-6 shadow-md shadow-black/5 transition-all hover:bg-background/70 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-1 dark:border-white/10 dark:shadow-black/40"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <FolderOpen className="h-24 w-24" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 text-muted-foreground mb-4">
+                                    <div className="p-2 rounded-lg bg-pink-500/10 text-pink-500">
+                                        <FolderOpen className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Public Events</span>
+                                </div>
+                                <div className="text-3xl font-bold tabular-nums text-foreground">{publicEvents?.length ?? 0}</div>
+                                <div className="mt-1 text-xs text-muted-foreground font-medium">Available now</div>
+                            </div>
                         </Link>
                     </>
                 )}
             </div>
+
+            {/* Event Browser Section for Coaches */}
+            {!isOrganizer && (
+                <div id="browse-events" className="pt-4">
+                    <div className="flex items-center gap-2 mb-6">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                            <FolderOpen className="h-5 w-5" />
+                        </div>
+                        <h2 className="text-xl font-bold tracking-tight">Browse Events</h2>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {publicEvents?.map((event) => {
+                            const status = appMap.get(event.id)
+                            return (
+                                <div key={event.id} className="group flex flex-col rounded-2xl border border-black/10 bg-gradient-to-b from-background/90 to-background/50 hover:bg-background/70 transition-colors p-5 shadow-md shadow-black/5 dark:border-white/10 dark:shadow-black/40">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="space-y-1">
+                                            <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/20 hover:bg-primary/10">
+                                                {event.event_type}
+                                            </Badge>
+                                        </div>
+                                        {status && (
+                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-background border border-border text-[10px] font-medium shadow-sm">
+                                                {getStatusIcon(status)}
+                                                <span>{getStatusText(status)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <h3 className="font-bold text-lg leading-tight mb-2 group-hover:text-primary transition-colors">{event.title}</h3>
+
+                                    <div className="space-y-2 mb-6 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-3.5 w-3.5" />
+                                            <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                                        </div>
+                                        {event.location && (
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="h-3.5 w-3.5" />
+                                                <span className="truncate max-w-[200px]">{event.location}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-auto pt-4 flex gap-3">
+                                        <Link href={`/dashboard/events/${event.id}`} className="flex-1">
+                                            <Button variant="outline" className="w-full rounded-xl border-black/10 bg-white/5 hover:bg-white/10 hover:text-foreground dark:border-white/10">
+                                                Details
+                                            </Button>
+                                        </Link>
+                                        <ApplyButton
+                                            eventId={event.id}
+                                            status={status}
+                                        />
+                                    </div>
+                                </div>
+                            )
+                        })}
+                        {(!publicEvents || publicEvents.length === 0) && (
+                            <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed border-black/10 rounded-2xl bg-white/5 dark:border-white/10">
+                                No public events found.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

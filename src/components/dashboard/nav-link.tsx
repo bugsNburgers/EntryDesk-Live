@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 type Props = LinkProps & {
     className?: string
     children: React.ReactNode
+    icon?: React.ReactNode
 }
 
 function isModifiedEvent(event: MouseEvent) {
@@ -23,7 +24,7 @@ function isModifiedEvent(event: MouseEvent) {
     )
 }
 
-export function DashboardNavLink({ children, className, ...props }: Props) {
+export function DashboardNavLink({ children, className, icon, ...props }: Props) {
     const { beginNavigation } = useDashboardNavigation()
     const pathname = usePathname()
 
@@ -33,7 +34,7 @@ export function DashboardNavLink({ children, className, ...props }: Props) {
     const isActive = !!hrefPath && hrefPath === pathname
 
     const baseClasses =
-        'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors'
+        'group flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors'
     const stateClasses = isActive
         ? 'bg-accent text-foreground'
         : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
@@ -55,6 +56,7 @@ export function DashboardNavLink({ children, className, ...props }: Props) {
                 beginNavigation(hrefString)
             }}
         >
+            {icon}
             {children}
         </Link>
     )
