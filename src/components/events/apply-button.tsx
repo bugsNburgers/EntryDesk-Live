@@ -35,7 +35,7 @@ export function ApplyButton({ eventId, status }: ApplyButtonProps) {
     }
 
     if (status === 'approved') {
-        return <Button variant="secondary" disabled className="bg-green-100 text-green-800">Approved</Button>
+        return <Button variant="secondary" disabled className="bg-emerald-100 text-emerald-800">Approved</Button>
     }
 
     if (status === 'pending') {

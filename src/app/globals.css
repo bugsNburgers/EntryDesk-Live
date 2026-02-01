@@ -6,15 +6,18 @@
 
 :root {
   /* Green / White / Black Theme - Light Mode */
-  
+
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
 
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
 
-  --primary: oklch(0.55 0.22 145);        /* Emerald Green */
-  --primary-foreground: oklch(1 0 0);     /* White */
+  /* Match the new emerald palette used in the site footer */
+  --primary: oklch(0.508 0.118 165.612);
+  /* emerald-700 */
+  --primary-foreground: oklch(1 0 0);
+  /* White */
 
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -56,25 +59,29 @@
 
 .dark {
   /* Green / White / Black Theme - Dark Mode */
-  --background: oklch(0.145 0 0);    
-  --foreground: oklch(0.985 0 0);       
+  /* Softer dark mode (less pitch-black) */
+  --background: oklch(0.175 0 0);
+  --foreground: oklch(0.985 0 0);
 
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.225 0 0);
   --card-foreground: oklch(0.985 0 0);
 
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.225 0 0);
   --popover-foreground: oklch(0.985 0 0);
 
-  --primary: oklch(0.65 0.22 145);      /* Lighter Emerald Green */
-  --primary-foreground: oklch(0 0 0);   /* Black */
+  /* Brighter primary for dark mode */
+  --primary: oklch(0.696 0.17 162.48);
+  /* emerald-500 */
+  --primary-foreground: oklch(0 0 0);
+  /* Black */
 
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.29 0 0);
   --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.29 0 0);
   --muted-foreground: oklch(0.708 0 0);
 
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.29 0 0);
   --accent-foreground: oklch(0.985 0 0);
 
   --destructive: oklch(0.704 0.191 22.216);
@@ -180,12 +187,16 @@ body {
     size: auto;
     margin: 0mm;
   }
+
   body * {
     visibility: hidden;
   }
-  #printable-area, #printable-area * {
+
+  #printable-area,
+  #printable-area * {
     visibility: visible;
   }
+
   #printable-area {
     position: absolute;
     left: 0;
@@ -194,6 +205,7 @@ body {
     margin: 0;
     padding: 0;
   }
+
   .no-print {
     display: none !important;
   }
@@ -205,8 +217,10 @@ body {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background-color: white;
-  width: 85.6mm; /* Standard ID-1 card width */
-  height: 53.98mm; /* Standard ID-1 card height */
+  width: 85.6mm;
+  /* Standard ID-1 card width */
+  height: 53.98mm;
+  /* Standard ID-1 card height */
   overflow: hidden;
   position: relative;
 }
@@ -215,6 +229,7 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

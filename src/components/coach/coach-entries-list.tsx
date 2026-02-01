@@ -264,7 +264,7 @@ export function CoachEntriesList({ entries, eventDays, dojos, statusPreset }: Co
                                     <td className="p-4 align-middle">
                                         <span className={cn(
                                             "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent",
-                                            entry.status === 'approved' ? "bg-green-100 text-green-800" :
+                                            entry.status === 'approved' ? "bg-emerald-100 text-emerald-800" :
                                                 entry.status === 'rejected' ? "bg-red-100 text-red-800" :
                                                     entry.status === 'submitted' ? "bg-blue-100 text-blue-800" :
                                                         "text-foreground bg-yellow-100 text-yellow-800"

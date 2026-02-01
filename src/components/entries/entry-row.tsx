@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { upsertEntry, deleteEntry } from "@/app/dashboard/entries/actions"
@@ -44,7 +44,7 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
         formData.append('category_id', categoryId)
         if (dayId) formData.append('event_day_id', dayId)
         if (type) formData.append('participation_type', type)
-        
+
         try {
             await upsertEntry(formData)
             setStatus('saved')
@@ -73,13 +73,13 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
     // For now, list all.
 
     return (
-        <tr className={cn("border-b transition-colors hover:bg-muted/50", isEntered ? "bg-green-50/50" : "")}>
+        <tr className={cn("border-b transition-colors hover:bg-muted/50", isEntered ? "bg-emerald-50/50" : "")}>
             <td className="p-4 align-middle font-medium">
                 <div>{student.name}</div>
                 <div className="text-xs text-muted-foreground">{student.rank} • {student.weight}kg • {new Date().getFullYear() - new Date(student.date_of_birth).getFullYear()}yrs</div>
             </td>
             <td className="p-4 align-middle">
-                 <Select value={categoryId} onValueChange={setCategoryId}>
+                <Select value={categoryId} onValueChange={setCategoryId}>
                     <SelectTrigger className="w-full min-w-[180px]">
                         <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
@@ -93,9 +93,9 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
                 </Select>
             </td>
             <td className="p-4 align-middle">
-                 <Select value={dayId} onValueChange={setDayId}>
+                <Select value={dayId} onValueChange={setDayId}>
                     <SelectTrigger className="w-[140px]">
-                         <SelectValue placeholder="Day" />
+                        <SelectValue placeholder="Day" />
                     </SelectTrigger>
                     <SelectContent>
                         {eventDays.map(d => (
@@ -104,8 +104,8 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
                     </SelectContent>
                 </Select>
             </td>
-           <td className="p-4 align-middle">
-                 <Select value={type} onValueChange={setType}>
+            <td className="p-4 align-middle">
+                <Select value={type} onValueChange={setType}>
                     <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Type" />
                     </SelectTrigger>
@@ -116,11 +116,11 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
                     </SelectContent>
                 </Select>
             </td>
-             <td className="p-4 align-middle text-center">
+            <td className="p-4 align-middle text-center">
                 {entry?.status === 'submitted' ? (
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">Submitted</span>
-                ): entry?.status === 'draft' ? (
-                     <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Draft</span>
+                ) : entry?.status === 'draft' ? (
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Draft</span>
                 ) : (
                     <span className="text-muted-foreground text-xs">-</span>
                 )}
@@ -132,12 +132,12 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     ) : null}
-                    
+
                     <Button size="sm" variant={isEntered ? "secondary" : "default"} onClick={handleSave} disabled={status === 'saving' || !categoryId}>
-                        {status === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : 
-                         status === 'saved' ? <CheckCircle className="h-4 w-4 text-green-600" /> :
-                         status === 'error' ? <AlertCircle className="h-4 w-4 text-red-600" /> :
-                         isEntered ? "Update" : "Add"}
+                        {status === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                            status === 'saved' ? <CheckCircle className="h-4 w-4 text-emerald-600" /> :
+                                status === 'error' ? <AlertCircle className="h-4 w-4 text-red-600" /> :
+                                    isEntered ? "Update" : "Add"}
                     </Button>
                 </div>
             </td>

@@ -20,12 +20,12 @@ export function KarateLoader({
                     <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-3xl">🥋</span>
                     </div>
-                    <div className="absolute -bottom-2 left-1/2 h-2 w-20 -translate-x-1/2 rounded-full bg-primary/20">
+                    <div className="absolute -bottom-2 left-1/2 h-2 w-24 -translate-x-1/2 rounded-full bg-primary/20 ring-1 ring-primary/15">
                         {safeProgress === undefined ? (
-                            <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
+                            <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-700 shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset]" />
                         ) : (
                             <div
-                                className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
+                                className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-700 transition-[width] duration-150 ease-out shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset]"
                                 style={{ width: `${safeProgress}%` }}
                             />
                         )}

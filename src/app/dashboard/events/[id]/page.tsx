@@ -136,7 +136,7 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
                             <Medal className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-green-600">{statusStats.approved}</div>
+                            <div className="text-2xl font-bold text-emerald-600">{statusStats.approved}</div>
                             <p className="text-xs text-muted-foreground">Ready for event</p>
                         </CardContent>
                     </Card>

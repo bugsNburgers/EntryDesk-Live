@@ -5,6 +5,7 @@ import { DashboardNavLink } from '@/components/dashboard/nav-link'
 import { SignOutForm } from '@/components/dashboard/signout-form'
 import { Badge } from '@/components/ui/badge'
 import { HistoryBackIconButton } from '@/components/app/history-back'
+import { ThemeSwitch } from '@/components/app/theme-toggle'
 
 export default async function DashboardLayout({
   children,
@@ -39,7 +40,7 @@ export default async function DashboardLayout({
         <div className="mx-auto flex min-h-screen w-full max-w-7xl">
           {/* Sidebar (desktop) */}
           <aside className="hidden w-72 flex-col border-r bg-background px-4 py-5 md:flex">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <DashboardNavLink href="/dashboard" className="px-2 py-1">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -51,9 +52,12 @@ export default async function DashboardLayout({
                   </div>
                 </div>
               </DashboardNavLink>
-              <Badge variant={role === 'organizer' ? 'success' : 'secondary'} className="capitalize">
-                {role}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <ThemeSwitch className="scale-[0.92]" />
+                <Badge variant={role === 'organizer' ? 'success' : 'secondary'} className="capitalize">
+                  {role}
+                </Badge>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-1 flex-col gap-1">
@@ -101,9 +105,12 @@ export default async function DashboardLayout({
                     <span className="text-sm font-semibold">EntryDesk</span>
                   </div>
                 </DashboardNavLink>
-                <Badge variant={role === 'organizer' ? 'success' : 'secondary'} className="capitalize">
-                  {role}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <ThemeSwitch className="scale-[0.9]" />
+                  <Badge variant={role === 'organizer' ? 'success' : 'secondary'} className="capitalize">
+                    {role}
+                  </Badge>
+                </div>
               </div>
             </div>
 

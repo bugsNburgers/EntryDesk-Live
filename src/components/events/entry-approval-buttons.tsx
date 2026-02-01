@@ -17,7 +17,7 @@ export function EntryApprovalButtons({ entryId, currentStatus }: EntryApprovalBu
         setLoading(status)
         try {
             await updateEntryStatus(entryId, status)
-        } catch(e) {
+        } catch (e) {
             console.error(e)
             alert('Failed to update')
         } finally {
@@ -29,26 +29,26 @@ export function EntryApprovalButtons({ entryId, currentStatus }: EntryApprovalBu
 
     return (
         <div className="flex gap-1 justify-end">
-            <Button 
-                size="icon" 
-                variant={currentStatus === 'approved' ? 'default' : 'ghost'} 
-                className={currentStatus === 'approved' ? "h-8 w-8 bg-green-600 hover:bg-green-700" : "h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"} 
-                onClick={() => handleUpdate('approved')} 
+            <Button
+                size="icon"
+                variant={currentStatus === 'approved' ? 'default' : 'ghost'}
+                className={currentStatus === 'approved' ? "h-8 w-8 bg-emerald-600 hover:bg-emerald-700" : "h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"}
+                onClick={() => handleUpdate('approved')}
                 disabled={!!loading || currentStatus === 'approved'}
                 title="Approve"
             >
                 {loading === 'approved' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 <span className="sr-only">Approve</span>
             </Button>
-            <Button 
-                size="icon" 
-                variant={currentStatus === 'rejected' ? 'default' : 'ghost'} 
-                className={currentStatus === 'rejected' ? "h-8 w-8 bg-red-600 hover:bg-red-700" : "h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"} 
-                onClick={() => handleUpdate('rejected')} 
+            <Button
+                size="icon"
+                variant={currentStatus === 'rejected' ? 'default' : 'ghost'}
+                className={currentStatus === 'rejected' ? "h-8 w-8 bg-red-600 hover:bg-red-700" : "h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"}
+                onClick={() => handleUpdate('rejected')}
                 disabled={!!loading || currentStatus === 'rejected'}
                 title="Reject"
             >
-                 {loading === 'rejected' ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                {loading === 'rejected' ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                 <span className="sr-only">Reject</span>
             </Button>
         </div>

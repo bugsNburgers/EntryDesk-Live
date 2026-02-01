@@ -129,7 +129,7 @@ export function CoachOverview({ stats, entries, onSelectStatus }: CoachOverviewP
                             <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+                            <div className="text-2xl font-bold text-emerald-600">{stats.approved}</div>
                             <p className="text-xs text-muted-foreground">Ready for event</p>
                         </CardContent>
                     </Card>

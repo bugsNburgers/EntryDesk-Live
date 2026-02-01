@@ -56,12 +56,12 @@ export function EntriesTable({ entries }: EntriesTableProps) {
 
     return (
         <div className="space-y-4">
-             {selectedIds.size > 0 && (
+            {selectedIds.size > 0 && (
                 <div className="bg-muted/50 p-2 rounded-lg flex items-center gap-4 border border-blue-100 bg-blue-50/50">
                     <span className="text-sm font-medium pl-2">{selectedIds.size} selected</span>
                     <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleBulkUpdate('approved')} disabled={isBulkUpdating} className="bg-green-600 hover:bg-green-700">
-                             {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        <Button size="sm" onClick={() => handleBulkUpdate('approved')} disabled={isBulkUpdating} className="bg-emerald-600 hover:bg-emerald-700">
+                            {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                             Approve Selected
                         </Button>
                         <Button size="sm" variant="destructive" onClick={() => handleBulkUpdate('rejected')} disabled={isBulkUpdating}>
@@ -77,9 +77,9 @@ export function EntriesTable({ entries }: EntriesTableProps) {
                     <thead className="[&_tr]:border-b bg-muted/40">
                         <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                             <th className="h-12 px-4 align-middle w-[50px]">
-                                <Checkbox 
-                                    checked={allSelected} 
-                                    onCheckedChange={(c) => handleSelectAll(!!c)} 
+                                <Checkbox
+                                    checked={allSelected}
+                                    onCheckedChange={(c) => handleSelectAll(!!c)}
                                     ref={input => {
                                         if (input) {
                                             // @ts-ignore
@@ -98,7 +98,7 @@ export function EntriesTable({ entries }: EntriesTableProps) {
                     </thead>
                     <tbody className="[&_tr:last-child]:border-0">
                         {entries.length === 0 ? (
-                             <tr>
+                            <tr>
                                 <td colSpan={7} className="h-24 text-center text-muted-foreground">
                                     No entries found.
                                 </td>
@@ -106,7 +106,7 @@ export function EntriesTable({ entries }: EntriesTableProps) {
                         ) : entries.map((entry) => (
                             <tr key={entry.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                 <td className="p-4 align-middle">
-                                    <Checkbox 
+                                    <Checkbox
                                         checked={selectedIds.has(entry.id)}
                                         onCheckedChange={(c) => handleSelectOne(entry.id, !!c)}
                                     />
@@ -129,14 +129,14 @@ export function EntriesTable({ entries }: EntriesTableProps) {
                                 </td>
                                 <td className="p-4 align-middle capitalize">{entry.participation_type}</td>
                                 <td className="p-4 align-middle">
-                                        <span className={
-                                            entry.status === 'approved' ? "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-100 text-green-800" :
+                                    <span className={
+                                        entry.status === 'approved' ? "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-emerald-100 text-emerald-800" :
                                             entry.status === 'rejected' ? "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-red-100 text-red-800" :
-                                            entry.status === 'submitted' ? "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-100 text-blue-800" : 
-                                            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-foreground"
-                                        }>
+                                                entry.status === 'submitted' ? "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-100 text-blue-800" :
+                                                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-foreground"
+                                    }>
                                         {entry.status}
-                                        </span>
+                                    </span>
                                 </td>
                                 <td className="p-4 align-middle text-right">
                                     <EntryApprovalButtons entryId={entry.id} currentStatus={entry.status} />

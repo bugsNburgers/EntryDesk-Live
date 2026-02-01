@@ -16,7 +16,7 @@ export function ApprovalButtons({ applicationId }: ApprovalButtonsProps) {
         setLoading(status)
         try {
             await updateApplicationStatus(applicationId, status)
-        } catch(e) {
+        } catch (e) {
             alert('Failed to update')
         } finally {
             setLoading(null)
@@ -25,12 +25,12 @@ export function ApprovalButtons({ applicationId }: ApprovalButtonsProps) {
 
     return (
         <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleUpdate('approved')} disabled={!!loading}>
+            <Button size="sm" variant="outline" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => handleUpdate('approved')} disabled={!!loading}>
                 {loading === 'approved' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
                 Approve
             </Button>
             <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleUpdate('rejected')} disabled={!!loading}>
-                 {loading === 'rejected' ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4 mr-1" />}
+                {loading === 'rejected' ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4 mr-1" />}
                 Reject
             </Button>
         </div>

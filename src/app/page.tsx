@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { createClient } from '@/lib/supabase/server'
 import { AppNavLink } from '@/components/app/nav-link'
 import { Badge } from '@/components/ui/badge'
+import { ThemeSwitch } from '@/components/app/theme-toggle'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -32,6 +33,7 @@ export default async function LandingPage() {
           </Link>
 
           <nav className="flex items-center gap-2">
+            <ThemeSwitch className="mr-1" />
             <Link
               href="#features"
               className="hidden rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground sm:inline-flex"
@@ -239,15 +241,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t py-10 text-sm text-muted-foreground">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} EntryDesk. All rights reserved.</span>
-          <div className="flex gap-4">
-            <Link className="hover:text-foreground" href="#features">Features</Link>
-            <Link className="hover:text-foreground" href="#events">Events</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

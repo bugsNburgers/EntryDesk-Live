@@ -11,6 +11,7 @@ import { NavigationOnPending } from '@/components/app/navigation-on-pending'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { HistoryBackIconButton } from '@/components/app/history-back'
+import { ThemeSwitch } from '@/components/app/theme-toggle'
 
 export default async function LoginPage() {
   const supabase = await createClient()
@@ -22,9 +23,12 @@ export default async function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <HistoryBackIconButton fallbackHref="/" />
-          <span className="text-sm">Back</span>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <HistoryBackIconButton fallbackHref="/" />
+            <span className="text-sm">Back</span>
+          </div>
+          <ThemeSwitch />
         </div>
       </div>
 
