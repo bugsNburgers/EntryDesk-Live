@@ -100,6 +100,53 @@ export function AppNavigationProvider({ children }: { children: React.ReactNode 
     }, [isNavigating, routeKey, stopProgressTimer])
 
     useEffect(() => {
+        const onClickCapture = (event: MouseEvent) => {
+            if (event.defaultPrevented) return
+            if (event.button !== 0) return
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+            const target = event.target
+            if (!(target instanceof Element)) return
+
+            const anchor = target.closest('a[href]') as HTMLAnchorElement | null
+            if (!anchor) return
+
+            // Opt-out escape hatch for special cases.
+            if (anchor.hasAttribute('data-no-global-loader')) return
+
+            const hrefAttr = anchor.getAttribute('href')
+            if (!hrefAttr) return
+            if (hrefAttr.startsWith('#')) return
+            if (hrefAttr.startsWith('mailto:') || hrefAttr.startsWith('tel:')) return
+            if (anchor.hasAttribute('download')) return
+
+            const targetAttr = anchor.getAttribute('target')
+            if (targetAttr && targetAttr !== '_self') return
+
+            // Only handle same-origin navigation.
+            let nextUrl: URL
+            try {
+                nextUrl = new URL(hrefAttr, window.location.href)
+            } catch {
+                return
+            }
+
+            if (nextUrl.origin !== window.location.origin) return
+
+            const currentKey = `${window.location.pathname}${window.location.search}`
+            const nextKey = `${nextUrl.pathname}${nextUrl.search}`
+
+            // No-op (same route): don't show a loader.
+            if (nextKey === currentKey) return
+
+            beginNavigation()
+        }
+
+        document.addEventListener('click', onClickCapture, true)
+        return () => document.removeEventListener('click', onClickCapture, true)
+    }, [beginNavigation])
+
+    useEffect(() => {
         if (!isNavigating) return
 
         const fromPath = fromPathRef.current

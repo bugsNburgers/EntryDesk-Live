@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useAppNavigation } from '@/components/app/navigation-provider'
 
 interface PaginationControlsProps {
   page: number
@@ -12,10 +13,12 @@ interface PaginationControlsProps {
 export function PaginationControls({ page, totalPages }: PaginationControlsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { beginNavigation } = useAppNavigation()
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams)
     params.set("page", newPage.toString())
+    beginNavigation()
     router.push(`?${params.toString()}`)
   }
 

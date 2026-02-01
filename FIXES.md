@@ -35,6 +35,10 @@ This doc captures the main issues encountered while setting up/running the app l
 - **4th session:** Improved light-mode separation (borders/shadows) consistently across dashboard pages.
 - **4th session:** Fixed multiple “Parsing ecmascript source code failed” issues caused by malformed JSX.
 
+- **5th session:** Implemented a truly global navigation loading overlay (any internal link click triggers loader instantly).
+- **5th session:** Covered programmatic navigations (router.push/replace/back) so non-Link buttons also show a loader.
+- **5th session:** Removed duplicate dashboard-only loader plumbing to avoid double overlays and keep behavior consistent.
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -603,3 +607,91 @@ This session focused on reducing dashboard clutter, making coach “event browsi
 
 **Why**
 - Improves readability and perceived quality without adding heavy/harsh borders.
+
+---
+
+# Session 5 — Global Loading Overlay “Everywhere”
+
+This session focused specifically on ensuring the app shows an immediate loading overlay whenever a click results in navigation, including cases that were previously missed (non-sidebar links and programmatic `router.push/replace/back`).
+
+## 0) Goal / UX direction for Session 5
+
+**Primary UX goals**
+- If a click causes a route change and the next screen is slow, show a loader instantly.
+- Do not rely on every individual button/link remembering to manually trigger a loader.
+- Avoid duplicate/stacked loaders (one from dashboard, one global).
+
+---
+
+## 1) Some links still felt “dead”: loader wasn’t guaranteed outside the dashboard sidebar
+
+**Symptom**
+- Many buttons/links across the app could navigate, but the loader didn’t always appear immediately.
+- The delay felt like the click “didn’t register” for ~2–3 seconds.
+
+**Root cause**
+- Loader triggering was not guaranteed globally for all link clicks (it depended on specific components calling `beginNavigation`).
+
+**Fix**
+- Added a global click-capture handler inside the app navigation provider that:
+  - detects same-origin `<a href>` clicks
+  - ignores modified clicks (new tab, ctrl/cmd click), downloads, hash links, external links
+  - starts the loader immediately before navigation begins
+  - does nothing for same-route clicks
+- Added an escape hatch: `data-no-global-loader` on links to opt out.
+
+**Where**
+- `src/components/app/navigation-provider.tsx`
+
+**Why**
+- This provides a single “at any cost” guarantee for link-driven navigation without needing to touch every page/component.
+
+---
+
+## 2) Non-Link buttons (router.push/replace) didn’t show a loader
+
+**Symptom**
+- Filters/pagination/select controls that use `router.push()` / `router.replace()` could still feel slow with no immediate feedback.
+
+**Root cause**
+- These navigations are not `<a>` clicks, so the global link-capture handler won’t fire.
+
+**Fix**
+- Updated key components that do programmatic navigation to call `beginNavigation()` right before route changes.
+
+**Where**
+- `src/components/ui/pagination-controls.tsx`
+- `src/components/events/entry-filters.tsx`
+- `src/components/entries/event-filter.tsx`
+- `src/components/app/history-back.tsx`
+
+**Why**
+- Ensures route transitions initiated by controls (not links) still show the same immediate loading feedback.
+
+---
+
+## 3) Avoid duplicate overlays: dashboard-specific loader vs app-wide loader
+
+**Symptom**
+- With both a dashboard navigation provider and an app navigation provider, it’s easy to end up with two loaders competing or inconsistent behavior.
+
+**Fix**
+- Standardized on the app-wide navigation provider for loader behavior.
+- Dashboard navigation links were aligned to use the same global provider.
+
+**Where**
+- `src/app/layout.tsx` (App-wide provider host)
+- `src/app/dashboard/layout.tsx` (removed the dashboard-only loader wrapper)
+- `src/components/dashboard/nav-link.tsx`
+
+**Why**
+- One source of truth for “loader while navigating” keeps UX consistent and avoids stacked overlays.
+
+---
+
+## Notes / Limitations
+
+- This guarantees loaders for route changes (navigation).
+- For slow server actions that do **not** change the URL (e.g. submit → `router.refresh()` on the same route), the correct pattern is still:
+  - `PendingButton` / `useFormStatus` for form submissions
+  - `NavigationOnPending` to trigger the global overlay during pending server actions

@@ -1,13 +1,14 @@
 'use client'
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useAppNavigation } from "@/components/app/navigation-provider"
 
 interface EventFilterProps {
     events: { id: string, title: string }[]
@@ -16,6 +17,7 @@ interface EventFilterProps {
 export function EventFilter({ events }: EventFilterProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { beginNavigation } = useAppNavigation()
     const currentEvent = searchParams.get('event') || ''
 
     const handleValueChange = (val: string) => {
@@ -25,6 +27,7 @@ export function EventFilter({ events }: EventFilterProps) {
         } else {
             params.delete('event')
         }
+        beginNavigation()
         router.push(`/dashboard/entries?${params.toString()}`)
     }
 

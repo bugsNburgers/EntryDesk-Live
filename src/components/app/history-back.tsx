@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useAppNavigation } from '@/components/app/navigation-provider'
 import { cn } from '@/lib/utils'
 
 type HistoryBackCommonProps = {
@@ -17,18 +18,21 @@ export function HistoryBackIconButton({
     ...props
 }: HistoryBackCommonProps & React.ComponentProps<typeof Button>) {
     const router = useRouter()
+    const { beginNavigation } = useAppNavigation()
 
     const handleBack = React.useCallback(() => {
         if (typeof window === 'undefined') return
 
         // If the page was opened directly (new tab), history might not have an entry.
         if (window.history.length <= 1) {
+            beginNavigation()
             router.push(fallbackHref ?? '/dashboard')
             return
         }
 
+        beginNavigation()
         router.back()
-    }, [fallbackHref, router])
+    }, [beginNavigation, fallbackHref, router])
 
     return (
         <Button
@@ -52,17 +56,20 @@ export function HistoryBackTextButton({
     ...props
 }: HistoryBackCommonProps & React.ButtonHTMLAttributes<HTMLButtonElement>) {
     const router = useRouter()
+    const { beginNavigation } = useAppNavigation()
 
     const handleBack = React.useCallback(() => {
         if (typeof window === 'undefined') return
 
         if (window.history.length <= 1) {
+            beginNavigation()
             router.push(fallbackHref ?? '/dashboard')
             return
         }
 
+        beginNavigation()
         router.back()
-    }, [fallbackHref, router])
+    }, [beginNavigation, fallbackHref, router])
 
     return (
         <button

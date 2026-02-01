@@ -99,19 +99,19 @@ export function SiteFooter() {
                                 </a>
 
                                 <a
-                                    href="mailto:prateekyawagal@gmail.com"
-                                    className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/15 transition-colors hover:bg-white/15"
-                                >
-                                    <Mail className="h-4 w-4" />
-                                    <span className="text-sm">prateekyawagal@gmail.com</span>
-                                </a>
-
-                                <a
                                     href="mailto:ullas4101997@gmail.com"
                                     className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/15 transition-colors hover:bg-white/15"
                                 >
                                     <Mail className="h-4 w-4" />
                                     <span className="text-sm">ullas4101997@gmail.com</span>
+                                </a>
+
+                                <a
+                                    href="mailto:prateekyawagal@gmail.com"
+                                    className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/15 transition-colors hover:bg-white/15"
+                                >
+                                    <Mail className="h-4 w-4" />
+                                    <span className="text-sm">prateekyawagal@gmail.com</span>
                                 </a>
                             </div>
                         </div>
