@@ -28,14 +28,6 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
         .eq('event_id', id)
         .eq('status', 'approved')
 
-    const { data: approvedCoachRows } = await supabase
-        .from('event_applications')
-        .select('id, created_at, profiles(full_name, email)')
-        .eq('event_id', id)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .limit(8)
-
     // Compute Stats
     const totalEntries = entries?.length || 0
 
@@ -92,9 +84,9 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
                 <Link href={`/dashboard/events/${id}/entries`} className="group block h-full focus:outline-none">
                     <Card className="h-full cursor-pointer transition-shadow group-hover:shadow-sm">
-                        <CardHeader className="flex min-h-[52px] flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="min-w-0 truncate text-sm font-medium">Total Entries</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader className="flex min-h-[52px] flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                            <CardTitle className="min-w-0 whitespace-normal text-sm font-medium leading-snug">Total Entries</CardTitle>
+                            <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{totalEntries}</div>
@@ -105,9 +97,9 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
 
                 <Link href={`/dashboard/events/${id}/approvals?status=pending`} className="group block h-full focus:outline-none">
                     <Card className="h-full cursor-pointer transition-shadow group-hover:shadow-sm">
-                        <CardHeader className="flex min-h-[52px] flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="min-w-0 truncate text-sm font-medium">Pending Approvals</CardTitle>
-                            <UserCheck className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader className="flex min-h-[52px] flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                            <CardTitle className="min-w-0 whitespace-normal text-sm font-medium leading-snug">Pending Approvals</CardTitle>
+                            <UserCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-yellow-600">{pendingApprovals || 0}</div>
@@ -118,9 +110,9 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
 
                 <Link href={`/dashboard/events/${id}/approvals?status=approved`} className="group block h-full focus:outline-none">
                     <Card className="h-full cursor-pointer transition-shadow group-hover:shadow-sm">
-                        <CardHeader className="flex min-h-[52px] flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="min-w-0 truncate text-sm font-medium">Approved Coaches</CardTitle>
-                            <Shield className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader className="flex min-h-[52px] flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                            <CardTitle className="min-w-0 whitespace-normal text-sm font-medium leading-snug">Approved Coaches</CardTitle>
+                            <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-emerald-600">{approvedCoaches || 0}</div>
@@ -131,9 +123,9 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
 
                 <Link href={`/dashboard/events/${id}/entries?status=approved`} className="group block h-full focus:outline-none">
                     <Card className="h-full cursor-pointer transition-shadow group-hover:shadow-sm">
-                        <CardHeader className="flex min-h-[52px] flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="min-w-0 truncate text-sm font-medium">Approved Entries</CardTitle>
-                            <Medal className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader className="flex min-h-[52px] flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                            <CardTitle className="min-w-0 whitespace-normal text-sm font-medium leading-snug">Approved Entries</CardTitle>
+                            <Medal className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-emerald-600">{statusStats.approved}</div>
@@ -144,9 +136,9 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
 
                 <Link href={`/dashboard/events/${id}/entries?status=submitted`} className="group block h-full focus:outline-none">
                     <Card className="h-full cursor-pointer transition-shadow group-hover:shadow-sm">
-                        <CardHeader className="flex min-h-[52px] flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="min-w-0 truncate text-sm font-medium">Submitted</CardTitle>
-                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader className="flex min-h-[52px] flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                            <CardTitle className="min-w-0 whitespace-normal text-sm font-medium leading-snug">Submitted</CardTitle>
+                            <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-blue-600">{statusStats.submitted}</div>
@@ -157,9 +149,9 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
 
                 <Link href={`/dashboard/events/${id}/entries?status=rejected`} className="group block h-full focus:outline-none">
                     <Card className="h-full cursor-pointer transition-shadow group-hover:shadow-sm">
-                        <CardHeader className="flex min-h-[52px] flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="min-w-0 truncate text-sm font-medium">Rejected Entries</CardTitle>
-                            <XCircle className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader className="flex min-h-[52px] flex-row items-start justify-between gap-2 space-y-0 pb-2">
+                            <CardTitle className="min-w-0 whitespace-normal text-sm font-medium leading-snug">Rejected Entries</CardTitle>
+                            <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-red-600">{statusStats.rejected}</div>
@@ -184,6 +176,15 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <div className="flex items-center justify-between text-sm">
+                                            <span>Both</span>
+                                            <span className="font-medium">{typeStats.both}</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                                            <div className="h-full bg-purple-500" style={{ width: `${totalEntries ? (typeStats.both / totalEntries) * 100 : 0}%` }} />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-sm">
                                             <span>Kata</span>
                                             <span className="font-medium">{typeStats.kata}</span>
                                         </div>
@@ -198,15 +199,6 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
                                         </div>
                                         <div className="h-2 rounded-full bg-secondary overflow-hidden">
                                             <div className="h-full bg-red-500" style={{ width: `${totalEntries ? (typeStats.kumite / totalEntries) * 100 : 0}%` }} />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span>Both</span>
-                                            <span className="font-medium">{typeStats.both}</span>
-                                        </div>
-                                        <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                                            <div className="h-full bg-purple-500" style={{ width: `${totalEntries ? (typeStats.both / totalEntries) * 100 : 0}%` }} />
                                         </div>
                                     </div>
                                 </div>
@@ -263,39 +255,6 @@ export default async function EventOverviewPage({ params }: { params: { id: stri
                     </CardContent>
                 </Card>
 
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Approved coaches</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {approvedCoachRows && approvedCoachRows.length > 0 ? (
-                            <div className="space-y-3">
-                                {approvedCoachRows.map((row: any) => {
-                                    const email = row.profiles?.email as string | undefined
-                                    const displayName = (row.profiles?.full_name || email?.split('@')?.[0] || email || '—') as string
-                                    return (
-                                        <div key={row.id} className="flex items-center justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="truncate text-sm font-medium">{displayName}</div>
-                                                <div className="truncate text-xs text-muted-foreground">{email || '—'}</div>
-                                            </div>
-                                            <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                                                approved
-                                            </span>
-                                        </div>
-                                    )
-                                })}
-                                {approvedCoaches && approvedCoaches > approvedCoachRows.length ? (
-                                    <div className="pt-2 text-sm text-muted-foreground">
-                                        +{approvedCoaches - approvedCoachRows.length} more
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No approved coaches yet.</p>
-                        )}
-                    </CardContent>
-                </Card>
             </div>
         </div>
     )
