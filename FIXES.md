@@ -42,6 +42,8 @@ This doc captures the main issues encountered while setting up/running the app l
 - **6th session:** Enforced role-based access in dashboard pages and server actions (coach vs organizer).
 - **6th session:** Hardened Supabase RLS policies and organizer view to prevent role escalation and cross-role access.
 
+- **7th session:** Unified dashboard navigation loader (single “Changing stances…” overlay; removed per-page loaders).
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -780,3 +782,46 @@ This session focuses on fixing “coach sees organizer UI” access leaks and ti
 - `src/app/dashboard/students/actions/index.ts`
 - `src/app/dashboard/events-browser/actions/index.ts`
 - `supabase/migrations/migration.sql`
+
+---
+
+# Session 7 — Dashboard Loader Unification (Single Loader)
+
+This session focuses on fixing the “two different loading pages” that showed up when switching between dashboard pages in production.
+
+## 1) Dashboard navigation showed two different loaders (prod only / much more visible in prod)
+
+**Symptom**
+- When switching between dashboard pages, the user would see the global overlay loader ("Changing stances...") and then a second full-page loader like "Loading dojos..." / "Loading students...".
+- This was much more noticeable in production because navigation/data fetching takes longer, so suspense fallbacks render long enough to see.
+
+**Root cause**
+- Two loader systems were active inside `/dashboard`:
+  - A client-side overlay loader ("Changing stances...") triggered on dashboard navigation.
+  - Multiple route-level `loading.tsx` files under `src/app/dashboard/**/loading.tsx` that render page-specific loaders (different titles).
+- When a dashboard route suspended during navigation, Next.js rendered the route-level `loading.tsx`, producing a second loader screen with different text.
+
+**Fix**
+- Standardized dashboard UX to a single loader during navigation:
+  - Keep the "Changing stances..." overlay as the one loader the user sees during dashboard switches.
+  - Disable the dashboard route-level loading screens by making dashboard `loading.tsx` files return `null`.
+
+**Why this is correct**
+- It guarantees one consistent loader design and message during dashboard-to-dashboard transitions.
+- It avoids the perception of multiple "pages" loading in sequence.
+- It keeps login/landing/non-dashboard behavior unchanged.
+
+**Where**
+- `src/app/dashboard/loading.tsx`
+- `src/app/dashboard/approvals/loading.tsx`
+- `src/app/dashboard/dojos/loading.tsx`
+- `src/app/dashboard/entries/loading.tsx`
+- `src/app/dashboard/entries/[eventId]/loading.tsx`
+- `src/app/dashboard/events/loading.tsx`
+- `src/app/dashboard/events/[id]/loading.tsx`
+- `src/app/dashboard/events/[id]/approvals/loading.tsx`
+- `src/app/dashboard/events/[id]/categories/loading.tsx`
+- `src/app/dashboard/events/[id]/entries/loading.tsx`
+- `src/app/dashboard/events-browser/loading.tsx`
+- `src/app/dashboard/items/loading.tsx`
+- `src/app/dashboard/students/loading.tsx`
