@@ -1,14 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { ApprovalButtons } from '@/components/approvals/approval-buttons'
 import { DashboardPageHeader } from '@/components/dashboard/page-header'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CheckSquare, Calendar } from 'lucide-react'
 
 export default async function ApprovalsPage() {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    const { supabase, user } = await requireRole(['organizer', 'admin'], { redirectTo: '/dashboard' })
 
     // 1. Get my event IDs
     const { data: events } = await supabase

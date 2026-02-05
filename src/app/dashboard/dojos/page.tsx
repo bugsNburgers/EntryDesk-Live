@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { Button } from '@/components/ui/button'
 import { Plus, LayoutGrid, Users } from 'lucide-react'
 import { DojoDialog } from '@/components/dojos/dojo-dialog'
@@ -6,10 +6,7 @@ import { DojoActions } from '@/components/dojos/dojo-actions'
 import { DashboardPageHeader } from '@/components/dashboard/page-header'
 
 export default async function DojosPage() {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    const { supabase, user } = await requireRole('coach', { redirectTo: '/dashboard' })
 
     // Fetch coach's dojos with student count
     const { data: dojos } = await supabase

@@ -1,16 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/require-role'
 
 export async function createDojo(formData: FormData) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    redirect('/login')
-  }
+  const { supabase, user } = await requireRole('coach')
 
   const name = formData.get('name') as string
 
@@ -30,10 +24,7 @@ export async function createDojo(formData: FormData) {
 }
 
 export async function updateDojo(dojoId: string, formData: FormData) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase, user } = await requireRole('coach')
 
   const name = formData.get('name') as string
 
@@ -44,7 +35,7 @@ export async function updateDojo(dojoId: string, formData: FormData) {
     .eq('coach_id', user.id) // Security check
 
   if (error) {
-     throw new Error('Failed to update dojo')
+    throw new Error('Failed to update dojo')
   }
 
   revalidatePath('/dashboard/dojos')
@@ -52,21 +43,18 @@ export async function updateDojo(dojoId: string, formData: FormData) {
 }
 
 export async function deleteDojo(dojoId: string) {
-    const supabase = await createClient()
+  const { supabase, user } = await requireRole('coach')
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+  const { error } = await supabase
+    .from('dojos')
+    .delete()
+    .eq('id', dojoId)
+    .eq('coach_id', user.id) // Security check
 
-    const { error } = await supabase
-        .from('dojos')
-        .delete()
-        .eq('id', dojoId)
-        .eq('coach_id', user.id) // Security check
-    
-    if (error) {
-        throw new Error('Failed to delete dojo')
-    }
+  if (error) {
+    throw new Error('Failed to delete dojo')
+  }
 
-    revalidatePath('/dashboard/dojos')
-    return { success: true }
+  revalidatePath('/dashboard/dojos')
+  return { success: true }
 }

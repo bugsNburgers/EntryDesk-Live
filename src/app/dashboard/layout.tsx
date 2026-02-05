@@ -44,6 +44,7 @@ export default async function DashboardLayout({
   // For now, let's assume profile is created on signup trigger or similar
 
   const role = profile?.role || 'coach'
+  const roleLabel = role === 'organizer' ? 'Organizer' : role === 'admin' ? 'Admin' : 'Coach'
 
   return (
     <div className="min-h-screen w-full relative">
@@ -64,7 +65,7 @@ export default async function DashboardLayout({
                 </div>
                 <div className="leading-tight">
                   <div className="text-sm font-bold tracking-tight">EntryDesk</div>
-                  <div className="text-xs text-muted-foreground font-medium">Organiser</div>
+                  <div className="text-xs text-muted-foreground font-medium">{roleLabel}</div>
                 </div>
               </div>
             </DashboardNavLink>

@@ -1,13 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { CoachDashboard } from '@/components/coach/coach-dashboard'
 import { notFound } from 'next/navigation'
 
 export default async function EventEntriesPage({ params }: { params: { eventId: string } }) {
-  const supabase = await createClient()
   const { eventId } = await params
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const { supabase, user } = await requireRole('coach', { redirectTo: '/dashboard' })
 
   // Fetch Event Details
   const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single()
@@ -20,20 +17,20 @@ export default async function EventEntriesPage({ params }: { params: { eventId: 
     .eq('event_id', eventId)
     .eq('coach_id', user.id)
     .single()
-  
+
   if (!app || app.status !== 'approved') {
-      return <div className="p-8 text-center text-red-600">Access Denied. You are not approved for this event.</div>
+    return <div className="p-8 text-center text-red-600">Access Denied. You are not approved for this event.</div>
   }
 
   // Fetch ALL students for this coach (via Dojos)
   // Logic: Users -> Profiles -> Dojos -> Students
   const { data: students } = await supabase
     .from('students')
-    .select('*, dojos!inner(id, name, coach_id)') 
+    .select('*, dojos!inner(id, name, coach_id)')
     .eq('dojos.coach_id', user.id)
     .order('name')
-    // Note: RLS should handle this, but the explicit inner join ensures we get students belonging to dojos owned by this coach.
-  
+  // Note: RLS should handle this, but the explicit inner join ensures we get students belonging to dojos owned by this coach.
+
   // Fetch Entries
   const { data: entries } = await supabase
     .from('entries')
@@ -62,20 +59,20 @@ export default async function EventEntriesPage({ params }: { params: { eventId: 
   // Compute Stats
   const validEntries = entries || []
   const stats = {
-      total: validEntries.length,
-      draft: validEntries.filter(e => e.status === 'draft').length,
-      submitted: validEntries.filter(e => e.status === 'submitted').length,
-      approved: validEntries.filter(e => e.status === 'approved').length
+    total: validEntries.length,
+    draft: validEntries.filter(e => e.status === 'draft').length,
+    submitted: validEntries.filter(e => e.status === 'submitted').length,
+    approved: validEntries.filter(e => e.status === 'approved').length
   }
 
   return (
-    <CoachDashboard 
-        event={event} 
-        stats={stats} 
-        entries={validEntries} 
-        students={students || []} 
-        eventDays={eventDays || []}
-        dojos={dojos || []}
+    <CoachDashboard
+      event={event}
+      stats={stats}
+      entries={validEntries}
+      students={students || []}
+      eventDays={eventDays || []}
+      dojos={dojos || []}
     />
   )
 }

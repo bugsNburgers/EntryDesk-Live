@@ -1,15 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/require-role'
 import { addDays, format } from 'date-fns'
 
 export async function createEvent(formData: FormData) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase, user } = await requireRole(['organizer', 'admin'])
 
   const title = formData.get('title') as string
   const description = formData.get('description') as string
@@ -42,20 +38,20 @@ export async function createEvent(formData: FormData) {
 
   // Auto-generate Event Days if multi-day or single day
   if (event) {
-      const start = new Date(start_date)
-      const end = new Date(end_date)
-      let current = start
-      let dayCount = 1
+    const start = new Date(start_date)
+    const end = new Date(end_date)
+    let current = start
+    let dayCount = 1
 
-      while (current <= end) {
-          await supabase.from('event_days').insert({
-              event_id: event.id,
-              date: format(current, 'yyyy-MM-dd'),
-              name: `Day ${dayCount}`
-          })
-          current = addDays(current, 1)
-          dayCount++
-      }
+    while (current <= end) {
+      await supabase.from('event_days').insert({
+        event_id: event.id,
+        date: format(current, 'yyyy-MM-dd'),
+        name: `Day ${dayCount}`
+      })
+      current = addDays(current, 1)
+      dayCount++
+    }
   }
 
   revalidatePath('/dashboard/events')

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { StudentDialog } from '@/components/students/student-dialog'
 import { StudentBulkUpload } from '@/components/students/student-bulk-upload'
 import { StudentDataTable } from '@/components/students/student-data-table'
@@ -9,10 +9,7 @@ export default async function StudentsPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const { supabase, user } = await requireRole('coach', { redirectTo: '/dashboard' })
 
   // URL Params
   const resolvedSearchParams = await searchParams

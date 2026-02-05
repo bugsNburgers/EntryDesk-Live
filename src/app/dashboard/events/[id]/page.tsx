@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, UserCheck, Shield, Swords, Medal, Building2, AlertCircle, XCircle } from "lucide-react"
 import Link from 'next/link'
 
 export default async function EventOverviewPage({ params }: { params: { id: string } }) {
     const { id } = await params
-    const supabase = await createClient()
+    const { supabase } = await requireRole(['organizer', 'admin'], { redirectTo: '/dashboard' })
 
     // Fetch all valid entries (no drafts) from the view for analysis
     const { data: entries } = await supabase

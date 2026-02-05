@@ -1,14 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/require-role'
 
 export async function applyToEvent(eventId: string) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase, user } = await requireRole('coach')
 
   // Ensure we have a profile row for FK references (coach_id -> profiles.id)
   // This is needed because Supabase Auth does not auto-create rows in public.profiles.

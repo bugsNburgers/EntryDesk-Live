@@ -122,25 +122,74 @@ select using (true);
 create policy "Users can insert their own profile" on profiles for
 insert
 with
-    check (auth.uid () = id);
+    check (
+        auth.uid () = id
+        and role = 'coach'
+    );
 -- Users can update own profile
 create policy "Users can update own profile" on profiles for
-update using (auth.uid () = id);
+update using (auth.uid () = id)
+with
+    check (
+        auth.uid () = id
+        and role = (
+            select role
+            from profiles
+            where
+                id = auth.uid ()
+        )
+    );
 
 -- Dojos:
 -- Coaches can view/edit their own dojos.
 create policy "Coaches view own dojos" on dojos for
-select using (auth.uid () = coach_id);
+select using (
+        auth.uid () = coach_id
+        and exists (
+            select 1
+            from profiles
+            where
+                id = auth.uid ()
+                and role in ('coach', 'admin')
+        )
+    );
 
 create policy "Coaches insert own dojos" on dojos for
 insert
 with
-    check (auth.uid () = coach_id);
+    check (
+        auth.uid () = coach_id
+        and exists (
+            select 1
+            from profiles
+            where
+                id = auth.uid ()
+                and role in ('coach', 'admin')
+        )
+    );
 
 create policy "Coaches update own dojos" on dojos for
-update using (auth.uid () = coach_id);
+update using (
+    auth.uid () = coach_id
+    and exists (
+        select 1
+        from profiles
+        where
+            id = auth.uid ()
+            and role in ('coach', 'admin')
+    )
+);
 
-create policy "Coaches delete own dojos" on dojos for delete using (auth.uid () = coach_id);
+create policy "Coaches delete own dojos" on dojos for delete using (
+    auth.uid () = coach_id
+    and exists (
+        select 1
+        from profiles
+        where
+            id = auth.uid ()
+            and role in ('coach', 'admin')
+    )
+);
 
 -- Students:
 -- Coaches can manage students in their dojos.
@@ -153,6 +202,13 @@ create policy "Coaches manage their students" on students using (
             dojos.id = students.dojo_id
             and dojos.coach_id = auth.uid ()
     )
+    and exists (
+        select 1
+        from profiles
+        where
+            id = auth.uid ()
+            and role in ('coach', 'admin')
+    )
 );
 
 -- Events:
@@ -160,7 +216,27 @@ create policy "Coaches manage their students" on students using (
 create policy "Public events are viewable by everyone" on events for
 select using (is_public = true);
 -- Organizers can manage their own events.
-create policy "Organizers manage own events" on events using (auth.uid () = organizer_id);
+create policy "Organizers manage own events" on events using (
+    auth.uid () = organizer_id
+    and exists (
+        select 1
+        from profiles
+        where
+            id = auth.uid ()
+            and role in ('organizer', 'admin')
+    )
+)
+with
+    check (
+        auth.uid () = organizer_id
+        and exists (
+            select 1
+            from profiles
+            where
+                id = auth.uid ()
+                and role in ('organizer', 'admin')
+        )
+    );
 
 -- Categories/EventDays:
 -- Viewable by everyone (if event is visible/public).
@@ -174,6 +250,13 @@ create policy "Organizers manage categories" on categories using (
         where
             events.id = categories.event_id
             and events.organizer_id = auth.uid ()
+            and exists (
+                select 1
+                from profiles
+                where
+                    id = auth.uid ()
+                    and role in ('organizer', 'admin')
+            )
     )
 );
 
@@ -187,12 +270,28 @@ create policy "Organizers manage event days" on event_days using (
         where
             events.id = event_days.event_id
             and events.organizer_id = auth.uid ()
+            and exists (
+                select 1
+                from profiles
+                where
+                    id = auth.uid ()
+                    and role in ('organizer', 'admin')
+            )
     )
 );
 
 -- Entries:
 -- Coaches can view/create entries for their students.
-create policy "Coaches manage own entries" on entries using (auth.uid () = coach_id);
+create policy "Coaches manage own entries" on entries using (
+    auth.uid () = coach_id
+    and exists (
+        select 1
+        from profiles
+        where
+            id = auth.uid ()
+            and role in ('coach', 'admin')
+    )
+);
 -- Organizers can view entries for their events.
 create policy "Organizers view entries for their events" on entries for
 select using (
@@ -202,6 +301,13 @@ select using (
             where
                 events.id = entries.event_id
                 and events.organizer_id = auth.uid ()
+                and exists (
+                    select 1
+                    from profiles
+                    where
+                        id = auth.uid ()
+                        and role in ('organizer', 'admin')
+                )
         )
     );
 -- Organizers can update status of entries.
@@ -213,6 +319,13 @@ update using (
         where
             events.id = entries.event_id
             and events.organizer_id = auth.uid ()
+            and exists (
+                select 1
+                from profiles
+                where
+                    id = auth.uid ()
+                    and role in ('organizer', 'admin')
+            )
     )
 );
 
@@ -221,10 +334,28 @@ update using (
 create policy "Coaches apply" on event_applications for
 insert
 with
-    check (auth.uid () = coach_id);
+    check (
+        auth.uid () = coach_id
+        and exists (
+            select 1
+            from profiles
+            where
+                id = auth.uid ()
+                and role in ('coach', 'admin')
+        )
+    );
 
 create policy "Coaches view own applications" on event_applications for
-select using (auth.uid () = coach_id);
+select using (
+        auth.uid () = coach_id
+        and exists (
+            select 1
+            from profiles
+            where
+                id = auth.uid ()
+                and role in ('coach', 'admin')
+        )
+    );
 -- Organizers manage applications.
 create policy "Organizers manage applications" on event_applications using (
     exists (
@@ -233,6 +364,13 @@ create policy "Organizers manage applications" on event_applications using (
         where
             events.id = event_applications.event_id
             and events.organizer_id = auth.uid ()
+            and exists (
+                select 1
+                from profiles
+                where
+                    id = auth.uid ()
+                    and role in ('organizer', 'admin')
+            )
     )
 );
 
@@ -271,7 +409,14 @@ from
     join profiles p on e.coach_id = p.id
     join events ev on e.event_id = ev.id
 where
-    ev.organizer_id = auth.uid ();
+    ev.organizer_id = auth.uid ()
+    and exists (
+        select 1
+        from profiles
+        where
+            id = auth.uid ()
+            and role in ('organizer', 'admin')
+    );
 
 -- Grant access to authenticated users
 grant select on organizer_entries_view to authenticated;

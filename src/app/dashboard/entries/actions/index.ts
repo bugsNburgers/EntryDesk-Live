@@ -1,65 +1,60 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/require-role'
 
 export async function upsertEntry(formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+    const { supabase, user } = await requireRole('coach')
 
-  const event_id = formData.get('event_id') as string
-  const student_id = formData.get('student_id') as string
-  const category_id = formData.get('category_id') as string
-  const event_day_id = formData.get('event_day_id') as string
-  const participation_type = formData.get('participation_type') as string
+    const event_id = formData.get('event_id') as string
+    const student_id = formData.get('student_id') as string
+    const category_id = formData.get('category_id') as string
+    const event_day_id = formData.get('event_day_id') as string
+    const participation_type = formData.get('participation_type') as string
 
-  // Upsert logic: If entry exists for (event_id, student_id), update it.
-  // We need to check if one exists first or rely on unique constraint?
-  // Schema doesn't enforce one entry per student per event strictly unique index yet, but logic implies it.
-  // Let's assume one entry row per student per event.
-  
-  const { data: existing } = await supabase
-    .from('entries')
-    .select('id')
-    .eq('event_id', event_id)
-    .eq('student_id', student_id)
-    .single()
+    // Upsert logic: If entry exists for (event_id, student_id), update it.
+    // We need to check if one exists first or rely on unique constraint?
+    // Schema doesn't enforce one entry per student per event strictly unique index yet, but logic implies it.
+    // Let's assume one entry row per student per event.
 
-  const payload = {
-      event_id,
-      coach_id: user.id,
-      student_id,
-      category_id: category_id || null, // handle 'null' string from selects if any
-      event_day_id: event_day_id || null,
-      participation_type: participation_type || null,
-      status: 'draft' // Always reset to draft if edited? Or keep current status? Usually editing puts back to draft.
-  }
+    const { data: existing } = await supabase
+        .from('entries')
+        .select('id')
+        .eq('event_id', event_id)
+        .eq('student_id', student_id)
+        .single()
 
-  let error;
-  if (existing) {
-       const res = await supabase.from('entries').update(payload).eq('id', existing.id)
-       error = res.error
-  } else {
-       const res = await supabase.from('entries').insert(payload)
-       error = res.error
-  }
+    const payload = {
+        event_id,
+        coach_id: user.id,
+        student_id,
+        category_id: category_id || null, // handle 'null' string from selects if any
+        event_day_id: event_day_id || null,
+        participation_type: participation_type || null,
+        status: 'draft' // Always reset to draft if edited? Or keep current status? Usually editing puts back to draft.
+    }
 
-  if (error) {
-    console.error(error)
-    throw new Error('Failed to save entry')
-  }
+    let error;
+    if (existing) {
+        const res = await supabase.from('entries').update(payload).eq('id', existing.id)
+        error = res.error
+    } else {
+        const res = await supabase.from('entries').insert(payload)
+        error = res.error
+    }
 
-  revalidatePath(`/dashboard/entries`)
-  revalidatePath(`/dashboard/entries/${event_id}`)
-  return { success: true }
+    if (error) {
+        console.error(error)
+        throw new Error('Failed to save entry')
+    }
+
+    revalidatePath(`/dashboard/entries`)
+    revalidatePath(`/dashboard/entries/${event_id}`)
+    return { success: true }
 }
 
 export async function submitEntries(eventId: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    const { supabase, user } = await requireRole('coach')
 
     // Update all 'draft' entries for this event and coach to 'submitted'
     const { error } = await supabase
@@ -70,16 +65,14 @@ export async function submitEntries(eventId: string) {
         .eq('status', 'draft')
 
     if (error) throw new Error('Failed to submit entries')
-    
+
     revalidatePath(`/dashboard/entries`)
     revalidatePath(`/dashboard/entries/${eventId}`)
     return { success: true }
 }
 
 export async function bulkCreateEntries(eventId: string, entries: { student_id: string, participation_type: string, event_day_id?: string | null }[]) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    const { supabase, user } = await requireRole('coach')
 
     if (entries.length === 0) return { success: true }
 
@@ -104,9 +97,7 @@ export async function bulkCreateEntries(eventId: string, entries: { student_id: 
 }
 
 export async function bulkSubmitEntries(entryIds: string[]) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    const { supabase, user } = await requireRole('coach')
     if (entryIds.length === 0) return { success: true }
 
     // 1. Fetch entries with Student details to Validate
@@ -146,20 +137,18 @@ export async function bulkSubmitEntries(entryIds: string[]) {
         .update({ status: 'submitted' })
         .in('id', validEntryIds)
         .eq('status', 'draft') // Double check we only submit drafts
-        .eq('coach_id', user.id) 
+        .eq('coach_id', user.id)
 
     if (error) throw new Error('Failed to submit entries')
 
     revalidatePath(`/dashboard/entries`)
-    
+
     // Optional: could return details about how many were passed/failed
     return { success: true, submitted: validEntryIds.length, ignored: invalidEntries.length }
 }
 
 export async function deleteEntry(entryId: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    const { supabase, user } = await requireRole('coach')
 
     const { error } = await supabase
         .from('entries')
@@ -174,9 +163,7 @@ export async function deleteEntry(entryId: string) {
 }
 
 export async function bulkDeleteEntries(entryIds: string[]) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    const { supabase, user } = await requireRole('coach')
     if (entryIds.length === 0) return { success: true }
 
     const { error } = await supabase

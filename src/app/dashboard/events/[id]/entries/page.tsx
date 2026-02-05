@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExportEntries } from '@/components/events/export-entries'
 import { EntriesTable } from '@/components/events/entries-table'
@@ -13,7 +13,7 @@ export default async function EventEntriesPage({
     searchParams: { q?: string, status?: string, coach?: string, day?: string, page?: string }
 }) {
     const { id } = await params
-    const supabase = await createClient()
+    const { supabase } = await requireRole(['organizer', 'admin'], { redirectTo: '/dashboard' })
     const p = await searchParams
 
     const page = Number(p.page) || 1

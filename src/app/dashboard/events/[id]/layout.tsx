@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound, redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/require-role'
+import { notFound } from 'next/navigation'
 
 export default async function EventLayout({
     children,
@@ -10,13 +10,18 @@ export default async function EventLayout({
 }) {
     // Await params before using its properties
     const { id } = await params
-    const supabase = await createClient()
+    const { supabase, user, role } = await requireRole(['organizer', 'admin'], { redirectTo: '/dashboard' })
 
-    const { data: event } = await supabase
+    let eventQuery = supabase
         .from('events')
         .select('*')
         .eq('id', id)
-        .single()
+
+    if (role !== 'admin') {
+        eventQuery = eventQuery.eq('organizer_id', user.id)
+    }
+
+    const { data: event } = await eventQuery.single()
 
     if (!event) notFound()
 

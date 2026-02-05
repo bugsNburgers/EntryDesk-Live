@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { ApplyButton } from '@/components/events/apply-button'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -7,10 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, MapPin, ArrowRight, FolderOpen, CheckCircle2, Clock, XCircle } from 'lucide-react'
 
 export default async function EventBrowserPage() {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    const { supabase, user } = await requireRole('coach', { redirectTo: '/dashboard' })
 
     const { data: events } = await supabase
         .from('events')

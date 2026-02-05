@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ApprovalButtons } from '@/components/approvals/approval-buttons'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
 export default async function EventApprovalsPage({
@@ -11,11 +11,8 @@ export default async function EventApprovalsPage({
     params: { id: string }
     searchParams?: { status?: string } | Promise<{ status?: string }>
 }) {
-    const supabase = await createClient()
+    const { supabase, user, role } = await requireRole(['organizer', 'admin'], { redirectTo: '/dashboard' })
     const { id } = await params
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
 
     // Verify ownership of event
     const { data: event } = await supabase
@@ -24,7 +21,7 @@ export default async function EventApprovalsPage({
         .eq('id', id)
         .single()
 
-    if (!event || event.organizer_id !== user.id) {
+    if (!event || (role !== 'admin' && event.organizer_id !== user.id)) {
         return notFound()
     }
 

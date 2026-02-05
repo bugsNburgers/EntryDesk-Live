@@ -1,14 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { requireRole } from '@/lib/auth/require-role'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Calendar, ArrowRight, CheckCircle2, MapPin, ClipboardList } from 'lucide-react'
 import { DashboardPageHeader } from '@/components/dashboard/page-header'
 
 export default async function EntriesPage() {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    const { supabase, user } = await requireRole('coach', { redirectTo: '/dashboard' })
 
     // Get Approved Events
     const { data: applications } = await supabase

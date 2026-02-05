@@ -39,6 +39,9 @@ This doc captures the main issues encountered while setting up/running the app l
 - **5th session:** Covered programmatic navigations (router.push/replace/back) so non-Link buttons also show a loader.
 - **5th session:** Removed duplicate dashboard-only loader plumbing to avoid double overlays and keep behavior consistent.
 
+- **6th session:** Enforced role-based access in dashboard pages and server actions (coach vs organizer).
+- **6th session:** Hardened Supabase RLS policies and organizer view to prevent role escalation and cross-role access.
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -695,3 +698,85 @@ This session focused specifically on ensuring the app shows an immediate loading
 - For slow server actions that do **not** change the URL (e.g. submit → `router.refresh()` on the same route), the correct pattern is still:
   - `PendingButton` / `useFormStatus` for form submissions
   - `NavigationOnPending` to trigger the global overlay during pending server actions
+
+---
+
+# Session 6 — Role-Based Access Control (RBAC) Hardening
+
+This session focuses on fixing “coach sees organizer UI” access leaks and tightening data-layer enforcement so UI and DB permissions match.
+
+## 1) Coach users could access organizer pages and actions
+
+**Symptom**
+- Coach accounts could open organizer routes (events, approvals, organizer event entries).
+- Coach UI sometimes showed “Organiser” label, causing confusion.
+
+**Root cause**
+- Pages and server actions relied on auth presence, not role checks.
+- The dashboard layout hardcoded the sidebar label.
+
+**Fix**
+- Added a centralized role guard helper (`requireRole`) used by server components and server actions.
+- Enforced role checks on organizer-only pages/actions and coach-only pages/actions.
+- Updated the sidebar role label to reflect the actual profile role.
+
+**Why this is correct**
+- Role gating in the server layer prevents accidental access regardless of client UI state.
+- A single guard avoids duplicated role logic across routes.
+
+## 2) RLS policies allowed cross-role access and role escalation
+
+**Symptom**
+- Users could potentially interact with tables based on `auth.uid()` only, without role verification.
+- `profiles` updates could be abused to change roles if not constrained.
+
+**Root cause**
+- Several policies used only ownership checks without role constraints.
+- `profiles` update policy did not lock down role changes.
+
+**Fix**
+- Added role checks to dojos, students, entries, event_applications, categories, event_days, and events policies.
+- Locked `profiles` inserts to `role = 'coach'` and prevented self-role changes on updates.
+- Hardened `organizer_entries_view` to require organizer/admin roles.
+
+**Why this is correct**
+- It blocks privilege escalation and ensures the DB enforces the same rules as the UI.
+- The organizer view now mirrors organizer-only access expectations.
+
+## 3) Update-only Supabase migration workflow
+
+**Symptom**
+- Re-running the full schema migration caused “already exists” errors.
+
+**Root cause**
+- The initial schema file is not idempotent; it cannot be re-run on an existing DB.
+
+**Fix**
+- Added an update-only migration (`supabase/migrations/migration.sql`) that drops/recreates policies and replaces the view.
+
+**Why this is correct**
+- Incremental migrations avoid destructive schema resets and are safe to re-run on existing databases.
+
+**Where**
+- `src/lib/auth/require-role.ts`
+- `src/app/dashboard/layout.tsx`
+- `src/app/dashboard/events/page.tsx`
+- `src/app/dashboard/approvals/page.tsx`
+- `src/app/dashboard/events/[id]/layout.tsx`
+- `src/app/dashboard/events/[id]/approvals/page.tsx`
+- `src/app/dashboard/events/[id]/categories/page.tsx`
+- `src/app/dashboard/events/[id]/entries/page.tsx`
+- `src/app/dashboard/events/actions/index.ts`
+- `src/app/dashboard/approvals/actions/index.ts`
+- `src/app/dashboard/events/[id]/categories/actions/index.ts`
+- `src/app/dashboard/events/[id]/entries/actions.ts`
+- `src/app/dashboard/dojos/page.tsx`
+- `src/app/dashboard/students/page.tsx`
+- `src/app/dashboard/entries/page.tsx`
+- `src/app/dashboard/entries/[eventId]/page.tsx`
+- `src/app/dashboard/events-browser/page.tsx`
+- `src/app/dashboard/entries/actions/index.ts`
+- `src/app/dashboard/dojos/actions.ts`
+- `src/app/dashboard/students/actions/index.ts`
+- `src/app/dashboard/events-browser/actions/index.ts`
+- `supabase/migrations/migration.sql`

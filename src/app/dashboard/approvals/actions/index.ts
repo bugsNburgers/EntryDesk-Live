@@ -1,20 +1,16 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/require-role'
 
 export async function updateApplicationStatus(applicationId: string, status: 'approved' | 'rejected') {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase } = await requireRole(['organizer', 'admin'])
 
   // Security: Ensure the event belongs to this organizer
-    // We can do this with a complex RLS policy (already have "Organizers manage applications")
-    // or by doing an explicit join check if RLS is too loose.
-    // Our RLS: "exists (select 1 from events where events.id = event_applications.event_id and events.organizer_id = auth.uid())"
-    // This protects UPDATES too.
+  // We can do this with a complex RLS policy (already have "Organizers manage applications")
+  // or by doing an explicit join check if RLS is too loose.
+  // Our RLS: "exists (select 1 from events where events.id = event_applications.event_id and events.organizer_id = auth.uid())"
+  // This protects UPDATES too.
 
   // Fetch event_id to revalidate the correct page
   const { data: updated, error } = await supabase
@@ -31,7 +27,7 @@ export async function updateApplicationStatus(applicationId: string, status: 'ap
 
   revalidatePath('/dashboard/approvals')
   if (updated) {
-       revalidatePath(`/dashboard/events/${updated.event_id}/approvals`)
+    revalidatePath(`/dashboard/events/${updated.event_id}/approvals`)
   }
   return { success: true }
 }
