@@ -44,6 +44,8 @@ This doc captures the main issues encountered while setting up/running the app l
 
 - **7th session:** Unified dashboard loading (single `/dashboard/loading.tsx`; disabled overlay loader inside dashboard).
 
+- **8th session:** Split events into Active vs Past (organizer) and Active/Approved/Past (coach); coach Home shows only Active + Approved.
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -819,3 +821,72 @@ This session focuses on fixing the “two different loading pages” that showed
 - `src/components/dashboard/nav-link.tsx`
 - `src/components/app/navigation-provider.tsx`
 - Deleted nested loaders under `src/app/dashboard/**/loading.tsx` (kept only the dashboard-level loader)
+
+---
+
+# Session 8 — Past Events + Coach Events Page
+
+This session adds automatic “Past Events” grouping once an event date has passed, and refactors the coach dashboard so Home stays focused while a dedicated Events page shows all categories.
+
+## 1) Organizer events needed a “Past Events” section
+
+**Request / Symptom**
+- Once an event is done (past the event date), it should be moved under a separate **Past Events** section on the organizer Events page.
+
+**Root cause**
+- Organizer events were rendered as a single list ordered by `start_date`, with no grouping logic.
+
+**Fix**
+- On `/dashboard/events`, split the organizer’s events into:
+  - **Active Events**: `end_date >= today`
+  - **Past Events**: `end_date < today`
+- Render both sections on the page.
+
+**Why this is correct**
+- `events.end_date` is the canonical “event finished” boundary for multi-day events.
+- Using an ISO date string (`YYYY-MM-DD`) keeps comparison stable for Postgres `date` values.
+
+**Where**
+- `src/app/dashboard/events/page.tsx`
+
+## 2) Coach dashboard needed Home to show only Active + Approved
+
+**Request / Symptom**
+- Coach Home should show **Active Events** and **Approved Events**.
+- Past events should not clutter Home.
+
+**Root cause**
+- Coach Home was effectively acting as a full event browser list.
+
+**Fix**
+- Coach Home (`/dashboard`) now shows:
+  - **Approved Events** (approved applications) where `end_date >= today`
+  - **Active Events** (public events) where `end_date >= today` and not already approved
+- Removed past events from the Home lists.
+
+**Where**
+- `src/app/dashboard/page.tsx`
+
+## 3) Coach needed a dedicated Events page with Active/Approved/Past sections
+
+**Request / Symptom**
+- Create a separate “Events” page under dashboard (similar to Dojos/Students pages).
+- That page should show **Active**, **Approved**, and **Past** events in separate sections.
+
+**Fix**
+- Reworked `/dashboard/events-browser` into the coach Events page with three sections:
+  - **Approved Events** (approved + upcoming)
+  - **Active Events** (upcoming, not approved)
+  - **Past Events** (end date passed)
+
+**Where**
+- `src/app/dashboard/events-browser/page.tsx`
+
+## 4) Navigation updates for coach Events
+
+**Fix**
+- Added an **Events** link for coaches to the dashboard navigation (desktop + mobile) pointing to `/dashboard/events-browser`.
+
+**Where**
+- `src/app/dashboard/layout.tsx`
+- `src/components/dashboard/mobile-nav.tsx`

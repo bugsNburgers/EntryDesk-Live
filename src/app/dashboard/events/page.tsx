@@ -15,6 +15,10 @@ export default async function EventsPage() {
     .eq('organizer_id', user.id)
     .order('start_date', { ascending: false })
 
+  const today = new Date().toISOString().slice(0, 10)
+  const activeEvents = (events ?? []).filter((event) => event.end_date >= today)
+  const pastEvents = (events ?? []).filter((event) => event.end_date < today)
+
   return (
     <div className="space-y-4">
       <DashboardPageHeader
@@ -24,9 +28,9 @@ export default async function EventsPage() {
       />
 
       <div className="rounded-2xl border border-black/5 bg-gradient-to-b from-background/95 to-background/70 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-background/40 dark:from-background/60 dark:to-background/30 dark:shadow-black/40">
-        {events && events.length > 0 ? (
+        {activeEvents.length > 0 ? (
           <div className="divide-y divide-border">
-            {events.map(event => (
+            {activeEvents.map(event => (
               <Link
                 key={event.id}
                 href={`/dashboard/events/${event.id}`}
@@ -76,10 +80,65 @@ export default async function EventsPage() {
         ) : (
           <div className="py-8 text-center">
             <Calendar className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-            <p className="text-sm font-medium">No events found</p>
-            <p className="mt-1 text-xs text-muted-foreground">Create your first event to get started.</p>
+            <p className="text-sm font-medium">No active events</p>
+            <p className="mt-1 text-xs text-muted-foreground">Create a new event to get started.</p>
           </div>
         )}
+      </div>
+
+      <div className="pt-2">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Past Events</h2>
+        </div>
+        <div className="rounded-2xl border border-black/5 bg-gradient-to-b from-background/95 to-background/70 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-background/40 dark:from-background/60 dark:to-background/30 dark:shadow-black/40">
+          {pastEvents.length > 0 ? (
+            <div className="divide-y divide-border">
+              {pastEvents.map(event => (
+                <Link
+                  key={event.id}
+                  href={`/dashboard/events/${event.id}`}
+                  className="group flex items-center justify-between gap-4 p-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">{event.title}</span>
+                        <Badge className="capitalize text-[10px] px-1.5 py-0" variant="secondary">{event.event_type}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <span>{new Date(event.start_date).toLocaleDateString()} – {new Date(event.end_date).toLocaleDateString()}</span>
+                        {event.location && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-0.5">
+                              <MapPin className="h-2.5 w-2.5" />
+                              {event.location}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                      View
+                      <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="py-6 text-center">
+              <p className="text-sm font-medium">No past events</p>
+              <p className="mt-1 text-xs text-muted-foreground">Completed events will show up here.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

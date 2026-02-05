@@ -1,5 +1,6 @@
 import { requireRole } from '@/lib/auth/require-role'
 import { notFound } from 'next/navigation'
+import { DeleteEventForm } from '@/components/events/delete-event-form'
 
 export default async function EventLayout({
     children,
@@ -25,9 +26,11 @@ export default async function EventLayout({
 
     if (!event) notFound()
 
+    const canDelete = event.organizer_id === user.id
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-start justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
                     <div className="flex text-sm text-muted-foreground gap-4">
@@ -35,6 +38,7 @@ export default async function EventLayout({
                         <span className="capitalize">{event.event_type}</span>
                     </div>
                 </div>
+                {canDelete ? <DeleteEventForm eventId={event.id} /> : null}
             </div>
 
             {children}

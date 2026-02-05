@@ -57,14 +57,9 @@ export default async function LandingPage() {
                 <Button className="rounded-full shadow-lg shadow-primary/20">Dashboard</Button>
               </AppNavLink>
             ) : (
-              <>
-                <AppNavLink href="/login">
-                  <Button variant="ghost" className="rounded-full">Login</Button>
-                </AppNavLink>
-                <AppNavLink href="/login">
-                  <Button className="rounded-full shadow-lg shadow-primary/20">Get Started</Button>
-                </AppNavLink>
-              </>
+              <AppNavLink href="/login">
+                <Button className="rounded-full shadow-lg shadow-primary/20">Get Started</Button>
+              </AppNavLink>
             )}
           </nav>
         </div>
@@ -97,13 +92,10 @@ export default async function LandingPage() {
               ) : (
                 <AppNavLink href="/login">
                   <Button size="lg" className="rounded-full h-12 px-8 text-base shadow-xl shadow-primary/25">
-                    Start Free Trial
+                    Get Started
                   </Button>
                 </AppNavLink>
               )}
-              <Button variant="ghost" size="lg" className="rounded-full h-12 px-8 text-base text-muted-foreground">
-                View Demo
-              </Button>
             </div>
 
             <div className="mt-12 flex gap-8 border-t border-border/50 pt-8">

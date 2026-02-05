@@ -91,6 +91,10 @@ export function MobileNav({ role, profile, userEmail }: MobileNavProps) {
                                         </>
                                     ) : (
                                         <>
+                                            <DashboardNavLink href="/dashboard/events-browser">
+                                                <Calendar className="h-4 w-4" />
+                                                Events
+                                            </DashboardNavLink>
                                             <DashboardNavLink href="/dashboard/dojos">
                                                 <Building2 className="h-4 w-4" />
                                                 My Dojos
