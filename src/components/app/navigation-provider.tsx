@@ -139,6 +139,9 @@ export function AppNavigationProvider({ children }: { children: React.ReactNode 
             // No-op (same route): don't show a loader.
             if (nextKey === currentKey) return
 
+            // Dashboard routes use route-level loaders to avoid blank states.
+            if (nextUrl.pathname.startsWith('/dashboard')) return
+
             beginNavigation()
         }
 
