@@ -66,6 +66,10 @@ export function AppNavigationProvider({ children }: { children: React.ReactNode 
     }, [])
 
     const beginNavigation = useCallback((options?: { title?: string; subtitle?: string }) => {
+        // Dashboard uses route-level loading.tsx for correct “no blank gap” behavior.
+        // Avoid overlay loaders inside /dashboard entirely.
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) return
+
         if (isNavigating) return
 
         setMessage({

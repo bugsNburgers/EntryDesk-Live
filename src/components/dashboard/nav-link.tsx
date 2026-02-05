@@ -3,7 +3,6 @@
 import Link, { type LinkProps } from 'next/link'
 import React, { type MouseEvent } from 'react'
 import { usePathname } from 'next/navigation'
-import { useAppNavigation } from '@/components/app/navigation-provider'
 import { cn } from '@/lib/utils'
 
 type Props = LinkProps & {
@@ -25,7 +24,6 @@ function isModifiedEvent(event: MouseEvent) {
 }
 
 export function DashboardNavLink({ children, className, icon, ...props }: Props) {
-    const { beginNavigation } = useAppNavigation()
     const pathname = usePathname()
 
     const hrefString = typeof props.href === 'string' ? props.href : undefined
@@ -52,8 +50,6 @@ export function DashboardNavLink({ children, className, icon, ...props }: Props)
                     e.preventDefault()
                     return
                 }
-
-                beginNavigation()
             }}
         >
             {icon}

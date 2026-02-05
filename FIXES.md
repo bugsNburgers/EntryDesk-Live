@@ -42,7 +42,7 @@ This doc captures the main issues encountered while setting up/running the app l
 - **6th session:** Enforced role-based access in dashboard pages and server actions (coach vs organizer).
 - **6th session:** Hardened Supabase RLS policies and organizer view to prevent role escalation and cross-role access.
 
-- **7th session:** Unified dashboard navigation loader (single “Changing stances…” overlay; removed per-page loaders).
+- **7th session:** Unified dashboard loading (single `/dashboard/loading.tsx`; disabled overlay loader inside dashboard).
 
 ## 1) Supabase migration error: `must be owner of table users`
 
@@ -803,25 +803,19 @@ This session focuses on fixing the “two different loading pages” that showed
 
 **Fix**
 - Standardized dashboard UX to a single loader during navigation:
-  - Keep the "Changing stances..." overlay as the one loader the user sees during dashboard switches.
-  - Disable the dashboard route-level loading screens by making dashboard `loading.tsx` files return `null`.
+  - Use a single route-level loader: `src/app/dashboard/loading.tsx` (one design).
+  - Remove/disable dashboard overlay loader triggers so "Changing stances..." does not appear inside `/dashboard`.
+  - Removed nested dashboard `loading.tsx` files so the dashboard-level loader is the only suspense fallback.
 
 **Why this is correct**
-- It guarantees one consistent loader design and message during dashboard-to-dashboard transitions.
-- It avoids the perception of multiple "pages" loading in sequence.
+- It guarantees one consistent loader design during dashboard-to-dashboard transitions.
+- It avoids both problems at once:
+  - double loaders (overlay + route fallback)
+  - blank gaps (overlay hides before server data finishes)
 - It keeps login/landing/non-dashboard behavior unchanged.
 
 **Where**
 - `src/app/dashboard/loading.tsx`
-- `src/app/dashboard/approvals/loading.tsx`
-- `src/app/dashboard/dojos/loading.tsx`
-- `src/app/dashboard/entries/loading.tsx`
-- `src/app/dashboard/entries/[eventId]/loading.tsx`
-- `src/app/dashboard/events/loading.tsx`
-- `src/app/dashboard/events/[id]/loading.tsx`
-- `src/app/dashboard/events/[id]/approvals/loading.tsx`
-- `src/app/dashboard/events/[id]/categories/loading.tsx`
-- `src/app/dashboard/events/[id]/entries/loading.tsx`
-- `src/app/dashboard/events-browser/loading.tsx`
-- `src/app/dashboard/items/loading.tsx`
-- `src/app/dashboard/students/loading.tsx`
+- `src/components/dashboard/nav-link.tsx`
+- `src/components/app/navigation-provider.tsx`
+- Deleted nested loaders under `src/app/dashboard/**/loading.tsx` (kept only the dashboard-level loader)
