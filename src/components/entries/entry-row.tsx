@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { upsertEntry, deleteEntry } from "@/app/dashboard/entries/actions"
 import { Loader2, Save, Trash2, CheckCircle, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { normalizeDobToIso } from "@/lib/date"
 
 interface EntryRowProps {
     student: any
@@ -76,7 +77,12 @@ export function EntryRow({ student, entry, categories, eventDays, eventId }: Ent
         <tr className={cn("border-b transition-colors hover:bg-muted/50", isEntered ? "bg-emerald-50/50" : "")}>
             <td className="p-4 align-middle font-medium">
                 <div>{student.name}</div>
-                <div className="text-xs text-muted-foreground">{student.rank} • {student.weight}kg • {new Date().getFullYear() - new Date(student.date_of_birth).getFullYear()}yrs</div>
+                <div className="text-xs text-muted-foreground">
+                    {student.rank} • {student.weight}kg • {(() => {
+                        const iso = normalizeDobToIso(student.date_of_birth)
+                        return iso ? `${new Date().getFullYear() - new Date(iso).getFullYear()}yrs` : 'Age N/A'
+                    })()}
+                </div>
             </td>
             <td className="p-4 align-middle">
                 <Select value={categoryId} onValueChange={setCategoryId}>

@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { createStudent, updateStudent } from '@/app/dashboard/students/actions'
+import { normalizeDobToIso } from '@/lib/date'
 
 interface Dojo {
     id: string
@@ -159,7 +160,13 @@ export function StudentDialog({ dojos, student, open, onOpenChange }: StudentDia
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="dob" className="text-right">DOB</Label>
-                            <Input id="dob" name="dob" type="date" defaultValue={student?.date_of_birth || ''} className="col-span-3" />
+                            <Input
+                                id="dob"
+                                name="dob"
+                                type="date"
+                                defaultValue={normalizeDobToIso(student?.date_of_birth) || ''}
+                                className="col-span-3"
+                            />
                         </div>
                     </div>
                     <DialogFooter>

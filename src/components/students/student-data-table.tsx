@@ -1,38 +1,39 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { 
-  ColumnDef, 
-  flexRender, 
-  getCoreRowModel, 
-  getPaginationRowModel, 
-  getSortedRowModel, 
-  getFilteredRowModel, 
-  useReactTable, 
-  SortingState,
-  ColumnFiltersState,
-  VisibilityState
+import {
+    ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+    useReactTable,
+    SortingState,
+    ColumnFiltersState,
+    VisibilityState
 } from '@tanstack/react-table'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  DropdownMenu, 
-  DropdownMenuCheckboxItem, 
-  DropdownMenuContent, 
-  DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StudentActions } from './student-actions'
 import { Search, SlidersHorizontal, ChevronDown, ArrowUpDown } from 'lucide-react'
 import Fuse from 'fuse.js'
+import { normalizeDobToIso } from '@/lib/date'
 
 interface Student {
     id: string
@@ -122,7 +123,11 @@ export function StudentDataTable({ data, dojos }: StudentDataTableProps) {
         {
             accessorKey: "date_of_birth",
             header: "DOB",
-            cell: ({ row }) => <div>{row.getValue("date_of_birth") || '-'}</div>,
+            cell: ({ row }) => {
+                const raw = row.getValue("date_of_birth")
+                const normalized = normalizeDobToIso(raw)
+                return <div>{normalized || (raw != null ? String(raw) : '-')}</div>
+            },
         },
         {
             id: "actions",
@@ -198,7 +203,7 @@ export function StudentDataTable({ data, dojos }: StudentDataTableProps) {
                         </SelectContent>
                     </Select>
 
-                     <DropdownMenu>
+                    <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="ml-auto">
                                 Columns <ChevronDown className="ml-2 h-4 w-4" />

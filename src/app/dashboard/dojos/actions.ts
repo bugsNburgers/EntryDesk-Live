@@ -6,7 +6,12 @@ import { requireRole } from '@/lib/auth/require-role'
 export async function createDojo(formData: FormData) {
   const { supabase, user } = await requireRole('coach')
 
-  const name = formData.get('name') as string
+  const nameValue = formData.get('name')
+  const name = typeof nameValue === 'string' ? nameValue.trim() : ''
+
+  if (!name) {
+    throw new Error('Dojo name is required')
+  }
 
   const { error } = await supabase
     .from('dojos')
@@ -16,7 +21,7 @@ export async function createDojo(formData: FormData) {
     })
 
   if (error) {
-    throw new Error('Failed to create dojo')
+    throw new Error(error.message)
   }
 
   revalidatePath('/dashboard/dojos')
@@ -26,7 +31,12 @@ export async function createDojo(formData: FormData) {
 export async function updateDojo(dojoId: string, formData: FormData) {
   const { supabase, user } = await requireRole('coach')
 
-  const name = formData.get('name') as string
+  const nameValue = formData.get('name')
+  const name = typeof nameValue === 'string' ? nameValue.trim() : ''
+
+  if (!name) {
+    throw new Error('Dojo name is required')
+  }
 
   const { error } = await supabase
     .from('dojos')
@@ -35,7 +45,7 @@ export async function updateDojo(dojoId: string, formData: FormData) {
     .eq('coach_id', user.id) // Security check
 
   if (error) {
-    throw new Error('Failed to update dojo')
+    throw new Error(error.message)
   }
 
   revalidatePath('/dashboard/dojos')
@@ -52,7 +62,7 @@ export async function deleteDojo(dojoId: string) {
     .eq('coach_id', user.id) // Security check
 
   if (error) {
-    throw new Error('Failed to delete dojo')
+    throw new Error(error.message)
   }
 
   revalidatePath('/dashboard/dojos')

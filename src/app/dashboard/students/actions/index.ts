@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/auth/require-role'
+import { normalizeDobToIso } from '@/lib/date'
 
 export async function createStudent(formData: FormData) {
     const { supabase, user } = await requireRole('coach')
@@ -11,7 +12,12 @@ export async function createStudent(formData: FormData) {
     const dojo_id = formData.get('dojo_id') as string // UUID
     const rank = formData.get('rank') as string
     const weight = formData.get('weight') ? Number(formData.get('weight')) : null
-    const dob = formData.get('dob') as string // YYYY-MM-DD
+    const dobRaw = formData.get('dob')
+    const dob = normalizeDobToIso(dobRaw)
+
+    if (dobRaw && !dob) {
+        throw new Error('Invalid DOB. Use YYYY-MM-DD.')
+    }
 
     // Security check: Ensure dojo belongs to coach
     const { data: dojo } = await supabase.from('dojos').select('id').eq('id', dojo_id).eq('coach_id', user.id).single()
@@ -28,7 +34,7 @@ export async function createStudent(formData: FormData) {
             dojo_id,
             rank: rank || null,
             weight,
-            date_of_birth: dob ? dob : null
+            date_of_birth: dob || null
         })
 
     if (error) {
@@ -49,7 +55,12 @@ export async function updateStudent(studentId: string, formData: FormData) {
     // const dojo_id = formData.get('dojo_id') as string // Allowing dojo change? Yes.
     const rank = formData.get('rank') as string
     const weight = formData.get('weight') ? Number(formData.get('weight')) : null
-    const dob = formData.get('dob') as string
+    const dobRaw = formData.get('dob')
+    const dob = normalizeDobToIso(dobRaw)
+
+    if (dobRaw && !dob) {
+        throw new Error('Invalid DOB. Use YYYY-MM-DD.')
+    }
 
     // Note: We are not explicitly checking dojo ownership in the filter here because RLS policies handles "update if you have access".
     // But since RLS for students is "exists in dojo owned by coach", we are safe.
@@ -62,7 +73,7 @@ export async function updateStudent(studentId: string, formData: FormData) {
             gender,
             rank: rank || null,
             weight,
-            date_of_birth: dob ? dob : null
+            date_of_birth: dob || null
             // dojo_id update logic omitted for simplicity unless requested, to avoid moving student to unowned dojo accidentally
         })
         .eq('id', studentId)

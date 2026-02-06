@@ -1,6 +1,7 @@
+
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -19,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, FileDown, Loader2, AlertTriangle } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Checkbox } from '@/components/ui/checkbox'
+import { normalizeDobToIso } from '@/lib/date'
 
 interface Dojo {
     id: string
@@ -47,9 +50,13 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
     const [open, setOpen] = useState(false)
     const [file, setFile] = useState<File | null>(null)
     const [parsedData, setParsedData] = useState<ParsedStudent[]>([])
+    const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set())
     const [selectedDojo, setSelectedDojo] = useState<string>('')
     const [isUploading, setIsUploading] = useState(false)
+    const [cancelRequestedUi, setCancelRequestedUi] = useState(false)
     const [step, setStep] = useState<'upload' | 'review'>('upload')
+
+    const cancelRequestedRef = useRef(false)
 
     const handleDownloadTemplate = () => {
         const headers = ['Name', 'Gender', 'Rank', 'Weight', 'Date of Birth'];
@@ -86,12 +93,8 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
 
         // DOB validation
         if (student.dob) {
-            const d = Date.parse(student.dob);
-            // Basic regex check for YYYY-MM-DD if string, or trust Date.parse?
-            // Excel dates might come as numbers, need handling in parsing phase really, but assuming string for now
-            if (isNaN(d)) {
-                warnings.dob = "Invalid date format";
-            }
+            const iso = normalizeDobToIso(student.dob)
+            if (!iso) warnings.dob = "Invalid date format (use YYYY-MM-DD)"
         }
 
         return { ...student, warnings };
@@ -133,13 +136,15 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                     };
 
                     const mapped: ParsedStudent[] = rows.map((row, i) => {
+                        const rawDobCell = dobIdx >= 0 ? row[dobIdx] : ''
+                        const normalizedDob = normalizeDobToIso(rawDobCell)
                         const raw: ParsedStudent = {
                             id: i,
                             name: row[nameIdx] || '',
                             gender: normalizeGender(row[genderIdx]),
                             rank: (row[rankIdx] || '').toString(),
                             weight: row[weightIdx] || '',
-                            dob: row[dobIdx] || '',
+                            dob: normalizedDob ?? (rawDobCell != null ? String(rawDobCell).trim() : ''),
                             status: 'pending' as const,
                             warnings: {}
                         };
@@ -147,6 +152,7 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                     }).filter(s => s.name); // Filter out empty rows
 
                     setParsedData(mapped);
+                    setSelectedRowIds(new Set())
                     setStep('review')
                 } catch (err) {
                     console.error(err)
@@ -159,7 +165,8 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
 
     const handleUpdateField = (index: number, field: keyof ParsedStudent, value: string) => {
         const newData = [...parsedData];
-        newData[index] = { ...newData[index], [field]: value };
+        const nextValue = field === 'dob' ? (normalizeDobToIso(value) ?? value) : value
+        newData[index] = { ...newData[index], [field]: nextValue };
         // Re-validate
         newData[index] = validateStudent(newData[index]);
         setParsedData(newData);
@@ -171,11 +178,16 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
             return;
         }
 
+        cancelRequestedRef.current = false
+        setCancelRequestedUi(false)
+
         setIsUploading(true);
         const newData = [...parsedData];
         let successCount = 0;
 
         for (let i = 0; i < newData.length; i++) {
+            if (cancelRequestedRef.current) break
+
             const student = newData[i];
             try {
                 const formData = new FormData();
@@ -207,6 +219,12 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
         setParsedData(newData);
         setIsUploading(false);
 
+        if (cancelRequestedRef.current) {
+            setCancelRequestedUi(false)
+            alert(`Import cancelled. Imported ${successCount} of ${newData.length}.`)
+            return
+        }
+
         if (successCount === newData.length) {
             alert(`Successfully imported all ${successCount} students!`);
             setOpen(false);
@@ -218,9 +236,49 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
     }
 
     const reset = () => {
+        cancelRequestedRef.current = false
+        setCancelRequestedUi(false)
         setStep('upload');
         setFile(null);
         setParsedData([]);
+        setSelectedRowIds(new Set())
+    }
+
+    const requestCancelImport = () => {
+        cancelRequestedRef.current = true
+        setCancelRequestedUi(true)
+    }
+
+    const isAllRowsSelected = parsedData.length > 0 && selectedRowIds.size === parsedData.length
+    const isSomeRowsSelected = selectedRowIds.size > 0 && selectedRowIds.size < parsedData.length
+
+    const toggleAllRows = () => {
+        if (isUploading) return
+
+        setSelectedRowIds((prev) => {
+            if (parsedData.length === 0) return prev
+            if (prev.size === parsedData.length) return new Set()
+            return new Set(parsedData.map((s) => s.id))
+        })
+    }
+
+    const toggleRow = (rowId: number) => {
+        if (isUploading) return
+
+        setSelectedRowIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(rowId)) next.delete(rowId)
+            else next.add(rowId)
+            return next
+        })
+    }
+
+    const deleteSelectedRows = () => {
+        if (isUploading) return
+        if (selectedRowIds.size === 0) return
+
+        setParsedData((prev) => prev.filter((s) => !selectedRowIds.has(s.id)))
+        setSelectedRowIds(new Set())
     }
 
     const WarningIcon = ({ msg }: { msg?: string }) => {
@@ -240,7 +298,15 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
     }
 
     return (
-        <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) reset(); }}>
+        <Dialog
+            open={open}
+            onOpenChange={(val) => {
+                // If an import is running, require explicit cancel.
+                if (!val && isUploading) return
+                setOpen(val)
+                if (!val) reset()
+            }}
+        >
             <DialogTrigger asChild>
                 <Button variant="outline">
                     <Upload className="mr-2 h-4 w-4" /> Bulk Upload
@@ -301,7 +367,32 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                                 <h3 className="text-sm font-medium">Review Data ({parsedData.length} students)</h3>
                                 <Button variant="ghost" size="sm" onClick={reset}>Upload Different File</Button>
                             </div>
+
+                            <div className="grid gap-2">
+                                <Label>Target Dojo</Label>
+                                <Select value={selectedDojo} onValueChange={setSelectedDojo}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Dojo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {dojos.map(dojo => (
+                                            <SelectItem key={dojo.id} value={dojo.id}>{dojo.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             <div className="rounded-md border">
+                                <div className="flex items-center justify-end gap-2 border-b bg-muted/30 px-3 py-2">
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={deleteSelectedRows}
+                                        disabled={isUploading || selectedRowIds.size === 0}
+                                    >
+                                        Delete selected
+                                    </Button>
+                                </div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -312,11 +403,21 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                                             <TableHead>Weight</TableHead>
                                             <TableHead>DOB</TableHead>
                                             <TableHead className="w-[100px]">Status</TableHead>
+                                            <TableHead className="w-[60px] text-right">
+                                                <div className="flex justify-end">
+                                                    <Checkbox
+                                                        checked={isAllRowsSelected ? true : isSomeRowsSelected ? 'indeterminate' : false}
+                                                        onCheckedChange={toggleAllRows}
+                                                        disabled={isUploading || parsedData.length === 0}
+                                                        aria-label="Select all rows"
+                                                    />
+                                                </div>
+                                            </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {parsedData.map((student, idx) => (
-                                            <TableRow key={idx} className={student.status === 'error' ? 'bg-destructive/10' : student.status === 'success' ? 'bg-emerald-50' : ''}>
+                                            <TableRow key={student.id} className={student.status === 'error' ? 'bg-destructive/10' : student.status === 'success' ? 'bg-emerald-50' : ''}>
                                                 <TableCell>{idx + 1}</TableCell>
                                                 <TableCell>
                                                     <Input value={student.name} onChange={(e) => handleUpdateField(idx, 'name', e.target.value)} className="h-8" />
@@ -349,6 +450,16 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
                                                     {student.status === 'success' && <span className="text-xs text-emerald-600 font-medium">Done</span>}
                                                     {student.status === 'pending' && <span className="text-xs text-muted-foreground">-</span>}
                                                 </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end">
+                                                        <Checkbox
+                                                            checked={selectedRowIds.has(student.id)}
+                                                            onCheckedChange={() => toggleRow(student.id)}
+                                                            disabled={isUploading}
+                                                            aria-label={`Select row ${idx + 1}`}
+                                                        />
+                                                    </div>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -360,12 +471,29 @@ export function StudentBulkUpload({ dojos }: StudentBulkUploadProps) {
 
                 <DialogFooter>
                     {step === 'review' && (
-                        <Button onClick={handleImport} disabled={isUploading || !selectedDojo}>
-                            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isUploading ? 'Importing...' : 'Confirm Import'}
-                        </Button>
+                        <>
+                            <Button
+                                onClick={handleImport}
+                                disabled={isUploading || !selectedDojo || parsedData.length === 0}
+                            >
+                                {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isUploading ? 'Importing...' : 'Confirm Import'}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    if (isUploading) requestCancelImport()
+                                    else setOpen(false)
+                                }}
+                                disabled={isUploading && cancelRequestedUi}
+                            >
+                                {isUploading ? (cancelRequestedUi ? 'Cancelling...' : 'Cancel Import') : 'Cancel'}
+                            </Button>
+                        </>
                     )}
-                    <Button variant="ghost" onClick={() => setOpen(false)}>Close</Button>
+                    {step === 'upload' && (
+                        <Button variant="ghost" onClick={() => setOpen(false)}>Close</Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -46,6 +46,11 @@ This doc captures the main issues encountered while setting up/running the app l
 
 - **8th session:** Split events into Active vs Past (organizer) and Active/Approved/Past (coach); coach Home shows only Active + Approved.
 
+- **9th session:** Fixed dashboard drawer sizing across breakpoints (sheet full-width/full-height on small screens).
+- **9th session:** Fixed “Failed to save dojo” by ensuring `public.profiles` row exists and surfacing Supabase error messages.
+- **9th session:** Fixed DOB imported as numbers (Excel serials) via DOB normalization at parse, save, and render.
+- **9th session:** Bulk upload review UX: added dojo selection in review step, cancel import, and row checkboxes + “Delete selected”.
+
 ## 1) Supabase migration error: `must be owner of table users`
 
 **Symptom**
@@ -561,6 +566,74 @@ This session focused on reducing dashboard clutter, making coach “event browsi
 **Where**
 - `src/app/dashboard/layout.tsx`
 - `src/components/dashboard/mobile-nav.tsx`
+
+---
+
+# Session 9 — Bulk Student Import UX + Data Normalization
+
+This session fixes a handful of issues discovered while using the dashboard in real workflows: the nav drawer sizing, dojo save failures, DOB import edge cases from Excel, and quality-of-life tools in the bulk student import review screen.
+
+## 1) Dashboard drawer showed oddly on mobile/desktop
+
+**Symptom**
+- The slide-out dashboard nav (Sheet) could look clipped or oddly sized depending on viewport/breakpoint.
+
+**Fix**
+- Refactored the mobile nav sheet layout to be a stable full-height column layout.
+- Adjusted the shared Sheet variants so left/right drawers use full width/height on small screens.
+
+**Where**
+- `src/components/dashboard/mobile-nav.tsx`
+- `src/components/ui/sheet.tsx`
+
+## 2) Dojo create/update failed with a generic “Failed to save dojo”
+
+**Symptom**
+- Dojo creation/update would fail and the UI only showed a generic error.
+
+**Root cause**
+- Some workflows hit RLS/foreign key dependencies that require a `public.profiles` row for the logged-in user.
+
+**Fix**
+- Ensure a profile row exists (best-effort create on demand) before role checks / downstream inserts.
+- Bubble up the underlying Supabase error messages so the UI shows the real cause.
+
+**Where**
+- `src/lib/auth/require-role.ts`
+- `src/app/dashboard/dojos/actions.ts`
+- `src/components/dojos/dojo-dialog.tsx`
+
+## 3) DOB kept showing as a number (e.g. 39291)
+
+**Symptom**
+- Date of Birth imported from Excel sometimes appeared as a number in the UI.
+
+**Root cause**
+- Excel often stores dates as a serial number; XLSX parsing can surface the raw numeric value.
+
+**Fix**
+- Added DOB normalization that converts Excel serials (and a few common text formats) into ISO `YYYY-MM-DD`.
+- Applied normalization at ingestion (bulk upload parse), at save (server actions), and at display (tables/forms/age calc).
+
+**Where**
+- `src/lib/date.ts`
+- `src/components/students/student-bulk-upload.tsx`
+- `src/app/dashboard/students/actions/index.ts`
+- `src/components/students/student-dialog.tsx`
+- `src/components/students/student-data-table.tsx`
+- `src/components/entries/entry-row.tsx`
+
+## 4) Bulk upload review needed “quick functions” (delete rows)
+
+**Request**
+- Add a checkbox at the end for quick actions like delete.
+
+**Fix**
+- Added a rightmost checkbox column (row selection + select-all).
+- Added a minimal bulk action: **Delete selected** (removes selected rows from the import list).
+
+**Where**
+- `src/components/students/student-bulk-upload.tsx`
 - `src/components/ui/sheet.tsx`
 
 **Why**

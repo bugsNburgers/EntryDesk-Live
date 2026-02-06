@@ -46,7 +46,8 @@ export function DojoDialog({ dojo, children, open, onOpenChange }: DojoDialogPro
       setShow(false)
     } catch (error) {
       console.error(error)
-      alert('Failed to save dojo')
+      const message = error instanceof Error ? error.message : 'Failed to save dojo'
+      alert(message)
     } finally {
       setIsSubmitting(false)
     }

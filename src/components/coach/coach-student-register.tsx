@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { StudentDialog } from "@/components/students/student-dialog"
+import { normalizeDobToIso } from "@/lib/date"
 
 interface CoachStudentRegisterProps {
     students: any[]
@@ -258,7 +259,10 @@ export function CoachStudentRegister({ students, existingStudentIds, eventId, ev
                                 <td className="p-4 align-middle">{student.dojos?.name || '-'}</td>
                                 <td className="p-4 align-middle">{student.rank}</td>
                                 <td className="p-4 align-middle text-muted-foreground capitalize">
-                                    {student.gender}, {student.date_of_birth ? `${new Date().getFullYear() - new Date(student.date_of_birth).getFullYear()}yrs` : 'Age N/A'}
+                                    {student.gender}, {(() => {
+                                        const iso = normalizeDobToIso(student.date_of_birth)
+                                        return iso ? `${new Date().getFullYear() - new Date(iso).getFullYear()}yrs` : 'Age N/A'
+                                    })()}
                                 </td>
                             </tr>
                         ))}
