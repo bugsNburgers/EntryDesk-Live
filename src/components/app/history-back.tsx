@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useAppNavigation } from '@/components/app/navigation-provider'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 type HistoryBackCommonProps = {
@@ -21,17 +22,36 @@ export function HistoryBackIconButton({
     const { beginNavigation } = useAppNavigation()
 
     const handleBack = React.useCallback(() => {
-        if (typeof window === 'undefined') return
+        void (async () => {
+            if (typeof window === 'undefined') return
 
-        // If the page was opened directly (new tab), history might not have an entry.
-        if (window.history.length <= 1) {
             beginNavigation()
-            router.push(fallbackHref ?? '/dashboard')
-            return
-        }
 
-        beginNavigation()
-        router.back()
+            // If logged out, never go back into potentially protected history.
+            try {
+                const supabase = createClient()
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession()
+
+                if (!session) {
+                    router.push('/')
+                    return
+                }
+            } catch {
+                // Fail closed: if we can't read session state, treat as logged out.
+                router.push('/')
+                return
+            }
+
+            // If the page was opened directly (new tab), history might not have an entry.
+            if (window.history.length <= 1) {
+                router.push(fallbackHref ?? '/dashboard')
+                return
+            }
+
+            router.back()
+        })()
     }, [beginNavigation, fallbackHref, router])
 
     return (
@@ -59,16 +79,35 @@ export function HistoryBackTextButton({
     const { beginNavigation } = useAppNavigation()
 
     const handleBack = React.useCallback(() => {
-        if (typeof window === 'undefined') return
+        void (async () => {
+            if (typeof window === 'undefined') return
 
-        if (window.history.length <= 1) {
             beginNavigation()
-            router.push(fallbackHref ?? '/dashboard')
-            return
-        }
 
-        beginNavigation()
-        router.back()
+            // If logged out, never go back into potentially protected history.
+            try {
+                const supabase = createClient()
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession()
+
+                if (!session) {
+                    router.push('/')
+                    return
+                }
+            } catch {
+                // Fail closed: if we can't read session state, treat as logged out.
+                router.push('/')
+                return
+            }
+
+            if (window.history.length <= 1) {
+                router.push(fallbackHref ?? '/dashboard')
+                return
+            }
+
+            router.back()
+        })()
     }, [beginNavigation, fallbackHref, router])
 
     return (
